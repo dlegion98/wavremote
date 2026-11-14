@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Router at the centre with two signal rings and one mesh node. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeAlpha="0.45"
+        android:strokeWidth="2.5"
+        android:pathData="M54,25 A29,29 0 1,1 53.99,25 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeAlpha="0.8"
+        android:strokeWidth="3"
+        android:pathData="M54,38 A16,16 0 1,1 53.99,38 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M54,47 A7,7 0 1,1 53.99,47 Z" />
+    <path android:fillColor="#F0B23C" android:pathData="M74.5,30.5 A5,5 0 1,1 74.49,30.5 Z" />
+</vector>

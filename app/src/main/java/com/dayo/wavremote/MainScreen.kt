@@ -1,0 +1,267 @@
+package com.dayo.wavremote
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.Router
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material.icons.rounded.Devices
+import androidx.compose.material.icons.rounded.Dns
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Logout
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.OpenInBrowser
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material.icons.rounded.Router
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.SystemUpdate
+import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.rounded.SpaceDashboard
+import androidx.compose.material.icons.outlined.SpaceDashboard
+import androidx.compose.material.icons.rounded.People
+import androidx.compose.material.icons.rounded.ChildCare
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.rounded.NetworkWifi
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.QrCode2
+import androidx.compose.material3.Switch
+import androidx.compose.ui.platform.LocalContext
+
+private data class TabSpec(val tab: Tab, val label: String, val on: ImageVector, val off: ImageVector)
+
+private val TABS = listOf(
+    TabSpec(Tab.HOME, "Overview", Icons.Rounded.SpaceDashboard, Icons.Outlined.SpaceDashboard),
+    TabSpec(Tab.DEVICES, "Devices", Icons.Rounded.Devices, Icons.Outlined.Devices),
+    TabSpec(Tab.WIFI, "Wi-Fi", Icons.Rounded.Wifi, Icons.Outlined.Wifi),
+    TabSpec(Tab.MORE, "More", Icons.Rounded.Tune, Icons.Outlined.Tune),
+)
+
+@Composable
+fun MainScreen(vm: AppViewModel) {
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(vm.message) {
+        vm.message?.let {
+            snackbar.showSnackbar(it)
+            vm.message = null
+        }
+    }
+
+    // Live refresh of the visible tab every 10 s.
+    LaunchedEffect(vm.tab) {
+        while (true) {
+            delay(10_000)
+            when (vm.tab) {
+                Tab.HOME -> vm.refreshOverview(quiet = true)
+                Tab.DEVICES -> vm.refreshDevices(quiet = true)
+                else -> {}
+            }
+        }
+    }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 0.dp) {
+                TABS.forEach { t ->
+                    val sel = vm.tab == t.tab
+                    NavigationBarItem(
+                        selected = sel,
+                        onClick = { vm.tab = t.tab },
+                        icon = { Icon(if (sel) t.on else t.off, contentDescription = null) },
+                        label = { Text(t.label, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium) },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    )
+                }
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            when (vm.tab) {
+                Tab.HOME -> DashboardHome(vm)
+                Tab.DEVICES -> DevicesTab(vm)
+                Tab.WIFI -> WifiTab(vm)
+                Tab.MORE -> MoreTab(vm)
+            }
+        }
+    }
+}
+
+@Composable
+fun Loading() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+}
+
+/** Label/value pair used inside sheets and dense groups. */
+@Composable
+fun InfoRow(label: String, value: String?) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f))
+        Spacer(Modifier.width(12.dp))
+        Text(value ?: "—", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+    }
+}
+
+/** Header used at the top of each tab, with an optional refresh action. */
+@Composable
+fun TabHeader(title: String, subtitle: String? = null, onRefresh: (() -> Unit)? = null) {
+    Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 12.dp), verticalAlignment = Alignment.Top) {
+        ScreenTitle(title, subtitle, Modifier.weight(1f))
+        if (onRefresh != null) IconButton(onClick = onRefresh) {
+            Icon(Icons.Rounded.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+// ================================================================ More
+
+@Composable
+private fun NodeTile(name: String, sub: String, status: String, color: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+    Column(
+        Modifier.width(150.dp).card().clickable(onClick = onClick).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(Icons.Rounded.Router, color, size = 40.dp)
+            Spacer(Modifier.weight(1f))
+            StatusDot(color)
+        }
+        Column {
+            Text(name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            Text(status, style = MaterialTheme.typography.labelSmall, color = color)
+        }
+    }
+}
+
+@Composable
+private fun MoreTab(vm: AppViewModel) {
+    var confirmReboot by remember { mutableStateOf(false) }
+    var confirmLogout by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { if (vm.meshNodes == null) vm.refreshMesh(quiet = true) }
+    val wav = Wav.colors
+
+    LazyColumn(
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item { TabHeader("More", onRefresh = { vm.refreshMesh() }) }
+
+        item {
+            GroupLabel("Mesh points")
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                NodeTile("Main router", vm.host ?: "", "Online", wav.signal) { vm.openSettings(SettingsPage.MESH) }
+                vm.meshNodes?.forEach { n ->
+                    NodeTile(n.name, n.ip ?: "", meshLinkLabel(n.rssi),
+                        if ((n.rssi ?: -60) < -73) wav.activity else wav.signal) { vm.openSettings(SettingsPage.MESH) }
+                }
+                if (vm.meshNodes?.isEmpty() == true) NodeTile("No satellites", "Add one in web settings", "Not paired",
+                    MaterialTheme.colorScheme.outline) { vm.openWebSettings() }
+            }
+        }
+
+        item {
+            GroupLabel("Settings")
+            CategoryGrid(vm)
+        }
+
+        item {
+            GroupLabel("App")
+            AppUpdateCard(vm)
+        }
+
+        item {
+            GroupLabel("Manage")
+            Group {
+                GroupRow("All settings", "Wi-Fi, guests, internet, ports, VPN, time, firmware",
+                    icon = Icons.Rounded.Settings, onClick = { vm.openSettings() })
+                GroupDivider()
+                GroupRow("Restart router", "Everyone is offline for about 2 minutes",
+                    icon = Icons.Rounded.RestartAlt, iconTint = wav.activity, onClick = { confirmReboot = true })
+                GroupDivider()
+                GroupRow("Web settings", "The router's own pages",
+                    icon = Icons.Rounded.OpenInBrowser, iconTint = MaterialTheme.colorScheme.secondary,
+                    onClick = vm::openWebSettings)
+            }
+        }
+
+        item {
+            Group {
+                GroupRow("Sign out", icon = Icons.Rounded.Logout, iconTint = wav.fault, titleColor = wav.fault,
+                    onClick = { confirmLogout = true })
+            }
+        }
+    }
+
+    if (confirmReboot) {
+        AlertDialog(
+            onDismissRequest = { confirmReboot = false },
+            title = { Text("Restart the router?") },
+            text = { Text("All devices lose internet for about 2 minutes while it restarts.") },
+            confirmButton = { TextButton(onClick = { confirmReboot = false; vm.reboot() }) { Text("Restart") } },
+            dismissButton = { TextButton(onClick = { confirmReboot = false }) { Text("Cancel") } },
+        )
+    }
+    if (confirmLogout) {
+        AlertDialog(
+            onDismissRequest = { confirmLogout = false },
+            title = { Text("Sign out?") },
+            text = { Text("You'll need the router password to sign in again.") },
+            confirmButton = { TextButton(onClick = { confirmLogout = false; vm.logout(forget = true) }) { Text("Sign out") } },
+            dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text("Cancel") } },
+        )
+    }
+}
