@@ -13,7 +13,12 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 if ! gh auth status >/dev/null 2>&1; then
   echo "Sign in to GitHub (a browser window will open)…"
-  gh auth login --web --git-protocol https
+  gh auth login --web --git-protocol https --scopes workflow
+fi
+# Pushing .github/workflows needs the "workflow" permission on the gh login.
+if ! gh auth status 2>&1 | grep -q "workflow"; then
+  echo "Granting GitHub CLI permission to publish the build workflow (browser will open)…"
+  gh auth refresh -h github.com -s workflow
 fi
 
 if [ ! -f signing/keystore.properties ] || [ ! -f signing/wavremote.jks ]; then
@@ -55,7 +60,8 @@ gh secret set KEYSTORE_PASSWORD -R "$OWNER/$REPO_NAME" -b "$(get storePassword)"
 gh secret set KEY_ALIAS -R "$OWNER/$REPO_NAME" -b "$(get keyAlias)"
 gh secret set KEY_PASSWORD -R "$OWNER/$REPO_NAME" -b "$(get keyPassword)"
 
-# --- push (triggers the build + release)
+# --- push (triggers the build + release). Use the gh login for git, not an old saved password.
+gh auth setup-git >/dev/null 2>&1 || true
 git push -u origin main
 
 echo
