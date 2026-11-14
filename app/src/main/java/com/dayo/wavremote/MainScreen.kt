@@ -31,20 +31,15 @@ import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Wifi
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,6 +52,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -69,7 +71,6 @@ import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.NetworkWifi
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.QrCode2
-import androidx.compose.material3.Switch
 import androidx.compose.ui.platform.LocalContext
 
 private data class TabSpec(val tab: Tab, val label: String, val on: ImageVector, val off: ImageVector)
@@ -106,19 +107,25 @@ fun MainScreen(vm: AppViewModel) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 0.dp) {
-                TABS.forEach { t ->
-                    val sel = vm.tab == t.tab
-                    NavigationBarItem(
-                        selected = sel,
-                        onClick = { vm.tab = t.tab },
-                        icon = { Icon(if (sel) t.on else t.off, contentDescription = null) },
-                        label = { Text(t.label, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium) },
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        ),
-                    )
+            // Flat tab bar: hairline top border, accent marker over the active tab, no pill indicator.
+            Column(Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(Modifier.fillMaxWidth().navigationBarsPadding().height(58.dp)) {
+                    TABS.forEach { t ->
+                        val sel = vm.tab == t.tab
+                        val c = if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        Column(
+                            Modifier.weight(1f).fillMaxHeight().clickable { vm.tab = t.tab },
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(Modifier.width(28.dp).height(2.dp).background(if (sel) MaterialTheme.colorScheme.primary else Color.Transparent))
+                            Spacer(Modifier.height(8.dp))
+                            Icon(if (sel) t.on else t.off, contentDescription = null, tint = c, modifier = Modifier.size(22.dp))
+                            Spacer(Modifier.height(3.dp))
+                            Text(t.label, style = MaterialTheme.typography.labelSmall, color = c,
+                                fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium)
+                        }
+                    }
                 }
             }
         },

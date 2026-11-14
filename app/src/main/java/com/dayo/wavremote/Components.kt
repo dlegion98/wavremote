@@ -116,7 +116,7 @@ fun GroupRow(
 @Composable
 fun IconBadge(icon: ImageVector, tint: Color = MaterialTheme.colorScheme.primary, size: Dp = 40.dp) {
     Box(
-        Modifier.size(size).clip(RoundedCornerShape(12.dp)).background(tint.copy(alpha = 0.13f)),
+        Modifier.size(size).clip(RoundedCornerShape(6.dp)).background(tint.copy(alpha = 0.14f)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(size * 0.55f))
@@ -131,9 +131,9 @@ fun Tag(text: String, color: Color) {
         style = MaterialTheme.typography.labelSmall,
         color = color,
         modifier = Modifier
-            .clip(CircleShape)
-            .background(color.copy(alpha = 0.13f))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .clip(RoundedCornerShape(4.dp))
+            .background(color.copy(alpha = 0.14f))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }
 

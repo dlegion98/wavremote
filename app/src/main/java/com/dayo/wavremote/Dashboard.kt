@@ -128,8 +128,8 @@ fun Legend(color: Color, label: String) {
 /** Download (filled area) and upload (line) over time. */
 @Composable
 fun TrafficChart(samples: List<TrafficSample>, modifier: Modifier = Modifier) {
-    val down = Wav.colors.signal
-    val up = Wav.colors.activity
+    val down = Wav.colors.down
+    val up = Wav.colors.up
     val grid = MaterialTheme.colorScheme.outlineVariant
     Canvas(modifier.fillMaxWidth().height(96.dp)) {
         listOf(0.25f, 0.5f, 0.75f).forEach { f ->
@@ -175,7 +175,7 @@ fun ToggleTile(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
-            Modifier.size(36.dp).clip(CircleShape)
+            Modifier.size(36.dp).clip(RoundedCornerShape(6.dp))
                 .background(if (on) fg.copy(alpha = 0.18f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
@@ -373,10 +373,10 @@ fun DashboardHome(vm: AppViewModel) {
                         val g2 = dl.online.count { it.band == 0 }
                         val wired = dl.online.count { it.isWired }
                         val other = dl.online.size - g5 - g2 - wired
-                        SplitBar(listOf(g5 to wav.signal, (g2 + other) to wav.activity, wired to MaterialTheme.colorScheme.secondary))
+                        SplitBar(listOf(g5 to wav.down, (g2 + other) to wav.up, wired to MaterialTheme.colorScheme.secondary))
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Legend(wav.signal, "5 GHz  $g5")
-                            Legend(wav.activity, "2.4 GHz  ${g2 + other}")
+                            Legend(wav.down, "5 GHz  $g5")
+                            Legend(wav.up, "2.4 GHz  ${g2 + other}")
                             Legend(MaterialTheme.colorScheme.secondary, "Wired  $wired")
                         }
                     }
@@ -389,11 +389,11 @@ fun DashboardHome(vm: AppViewModel) {
             DashTile("Throughput", Modifier.fillMaxWidth(), onClick = { vm.tab = Tab.DEVICES }) {
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     Column {
-                        Text(formatSpeed(last?.downKBs ?: 0), style = MaterialTheme.typography.titleLarge, color = wav.signal)
+                        Text(formatSpeed(last?.downKBs ?: 0), style = MaterialTheme.typography.titleLarge, color = wav.down)
                         Text("Download", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Column {
-                        Text(formatSpeed(last?.upKBs ?: 0), style = MaterialTheme.typography.titleLarge, color = wav.activity)
+                        Text(formatSpeed(last?.upKBs ?: 0), style = MaterialTheme.typography.titleLarge, color = wav.up)
                         Text("Upload", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -483,8 +483,8 @@ fun DashboardHome(vm: AppViewModel) {
 @Composable
 fun Throughput(d: Device) {
     Column(horizontalAlignment = Alignment.End) {
-        Text("↓ ${formatSpeed(d.downKBs)}", style = MaterialTheme.typography.labelMedium, color = Wav.colors.signal)
-        Text("↑ ${formatSpeed(d.upKBs)}", style = MaterialTheme.typography.labelMedium, color = Wav.colors.activity)
+        Text("↓ ${formatSpeed(d.downKBs)}", style = MaterialTheme.typography.labelMedium, color = Wav.colors.down)
+        Text("↑ ${formatSpeed(d.upKBs)}", style = MaterialTheme.typography.labelMedium, color = Wav.colors.up)
     }
 }
 
@@ -517,12 +517,12 @@ fun AppUpdateCard(vm: AppViewModel, compact: Boolean = false) {
             androidx.compose.material3.LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth())
         }
         if (u != null) {
-            androidx.compose.material3.Button(
+            Button(
                 onClick = vm::installUpdate, enabled = vm.updateProgress == null,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
             ) { Text(if (vm.updateProgress != null) "Downloading…" else "Install update") }
         } else if (Updater.enabled) {
-            androidx.compose.material3.OutlinedButton(onClick = { vm.checkForUpdate() }, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = { vm.checkForUpdate() }, modifier = Modifier.fillMaxWidth()) {
                 Text("Check for updates")
             }
         }

@@ -28,18 +28,12 @@ import androidx.compose.material.icons.rounded.Tablet
 import androidx.compose.material.icons.rounded.Tv
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.Watch
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,10 +54,8 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.PowerSettingsNew
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
@@ -133,10 +125,10 @@ fun DevicesTab(vm: AppViewModel) {
             val wired = list.online.count { it.isWired }
             val g2 = list.online.size - g5 - wired
             DashTile("Connected now") {
-                SplitBar(listOf(g5 to Wav.colors.signal, g2 to Wav.colors.activity, wired to MaterialTheme.colorScheme.secondary))
+                SplitBar(listOf(g5 to Wav.colors.down, g2 to Wav.colors.up, wired to MaterialTheme.colorScheme.secondary))
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Legend(Wav.colors.signal, "5 GHz  $g5")
-                    Legend(Wav.colors.activity, "2.4 GHz  $g2")
+                    Legend(Wav.colors.down, "5 GHz  $g5")
+                    Legend(Wav.colors.up, "2.4 GHz  $g2")
                     Legend(MaterialTheme.colorScheme.secondary, "Wired  $wired")
                 }
             }
@@ -207,6 +199,8 @@ fun DevicesTab(vm: AppViewModel) {
         ModalBottomSheet(
             onDismissRequest = { selectedMac = null },
             containerColor = MaterialTheme.colorScheme.background,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp),
+            tonalElevation = 0.dp,
         ) {
             DeviceSheet(vm, selected, list, onDone = { selectedMac = null })
         }
@@ -283,10 +277,10 @@ private fun DeviceSheet(vm: AppViewModel, d: Device, list: DeviceList, onDone: (
                     Text(if (d.isWired) "Wired" else "${d.rssi}%", style = MaterialTheme.typography.titleLarge)
                 }
                 DashTile("Download", Modifier.weight(1f)) {
-                    Text(formatSpeed(d.downKBs), style = MaterialTheme.typography.titleLarge, color = wav.signal)
+                    Text(formatSpeed(d.downKBs), style = MaterialTheme.typography.titleLarge, color = wav.down)
                 }
                 DashTile("Upload", Modifier.weight(1f)) {
-                    Text(formatSpeed(d.upKBs), style = MaterialTheme.typography.titleLarge, color = wav.activity)
+                    Text(formatSpeed(d.upKBs), style = MaterialTheme.typography.titleLarge, color = wav.up)
                 }
             }
         }
