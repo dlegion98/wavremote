@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_status">Network status</string>
+    <string name="widget_status_desc">Internet state, devices online and current download and upload speed.</string>
+    <string name="widget_controls">Quick controls</string>
+    <string name="widget_controls_desc">Switch guest Wi-Fi, kids\' Wi-Fi and the router lights on or off.</string>
+    <string name="widget_devices">Devices online</string>
+    <string name="widget_devices_desc">How many devices are connected, by band.</string>
+</resources>

@@ -248,6 +248,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         devices = it
         val sample = TrafficSample(System.currentTimeMillis(), it.online.sumOf { d -> d.downKBs }, it.online.sumOf { d -> d.upKBs })
         trafficHistory = (trafficHistory + sample).takeLast(60)
+        Widgets.pushFromApp(getApplication<Application>(), overview, it)
     }
 
     /** Total network throughput, one sample per device refresh (~10 s), last 60 kept. */
