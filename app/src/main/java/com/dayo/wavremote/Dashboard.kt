@@ -1,5 +1,8 @@
 package com.dayo.wavremote
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -69,7 +72,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun Modifier.card(color: Color = MaterialTheme.colorScheme.surfaceContainer): Modifier {
     val shape = MaterialTheme.shapes.large
-    val base = this.clip(shape).background(color)
+    val base = this.appear().clip(shape).background(color)
     return if (Wav.colors.outlined) base.border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape) else base
 }
 
@@ -92,13 +95,17 @@ fun DashTile(title: String, modifier: Modifier = Modifier, onClick: (() -> Unit)
 @Composable
 fun RingGauge(score: Int, color: Color, size: Dp = 76.dp) {
     val track = MaterialTheme.colorScheme.outlineVariant
+    // Sweep up from zero when first shown, then glide between scores.
+    var target by remember { mutableStateOf(0f) }
+    LaunchedEffect(score) { target = score.toFloat() }
+    val shown by animateFloatAsState(target, tween(800), label = "score")
     Box(contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(size)) {
             val stroke = 9.dp.toPx()
             val inset = stroke / 2
             val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
             drawArc(track, 135f, 270f, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
-            drawArc(color, 135f, 270f * score / 100f, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+            drawArc(color, 135f, 270f * shown / 100f, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
         }
         Text("$score", style = MaterialTheme.typography.headlineMedium)
     }
@@ -165,8 +172,10 @@ fun ToggleTile(
     modifier: Modifier = Modifier,
     onToggle: (Boolean) -> Unit,
 ) {
-    val bg = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer
-    val fg = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    val bg by animateColorAsState(
+        if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer, tween(220), label = "toggleBg")
+    val fg by animateColorAsState(
+        if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface, tween(220), label = "toggleFg")
     Column(
         modifier
             .card(bg)

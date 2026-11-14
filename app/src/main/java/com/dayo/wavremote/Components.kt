@@ -1,6 +1,7 @@
 package com.dayo.wavremote
 
 import android.provider.Settings
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -32,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -39,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -49,6 +52,19 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
+
+// ================================================================ motion
+
+/** Panels fade in and rise a few dp the first time they are shown. */
+@Composable
+fun Modifier.appear(): Modifier {
+    val a = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { a.animateTo(1f, tween(280)) }
+    return this.graphicsLayer {
+        alpha = a.value
+        translationY = (1f - a.value) * 12.dp.toPx()
+    }
+}
 
 // ================================================================ grouped lists
 
@@ -70,7 +86,7 @@ fun Group(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> 
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer,
         border = if (Wav.colors.outlined) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.appear().fillMaxWidth(),
     ) {
         Column(content = content)
     }

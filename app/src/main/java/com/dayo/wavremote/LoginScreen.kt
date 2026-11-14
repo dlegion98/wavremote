@@ -46,7 +46,7 @@ fun LoginScreen(vm: AppViewModel, host: String) {
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(onClick = vm::backToConnect, modifier = Modifier.padding(start = 0.dp)) { Text("Back") }
+        TextButton(onClick = vm::backToConnect, modifier = Modifier.padding(start = 0.dp)) { Text("Find a different router") }
         IconBadge(Icons.Rounded.Key, size = 56.dp)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Sign in to your router", style = MaterialTheme.typography.displaySmall)
@@ -62,6 +62,14 @@ fun LoginScreen(vm: AppViewModel, host: String) {
                 GroupRow("Setup isn't finished", "Complete first-time setup in web settings, then sign in here.",
                     icon = Icons.Rounded.Key, iconTint = Wav.colors.activity, onClick = vm::openWebSettings)
             }
+        }
+
+        if (vm.hasSavedLogin(host)) {
+            OutlinedButton(
+                onClick = { vm.openRouter(host) },
+                enabled = !vm.loginBusy,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+            ) { Text(if (vm.loginBusy) "Connecting…" else "Reconnect with the saved sign-in") }
         }
 
         OutlinedTextField(

@@ -1,14 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Router at the centre with two signal rings and one mesh node. -->
+<!-- A router with two signal arcs above it. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeAlpha="0.45"
-        android:strokeWidth="2.5"
-        android:pathData="M54,25 A29,29 0 1,1 53.99,25 Z" />
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeAlpha="0.8"
-        android:strokeWidth="3"
-        android:pathData="M54,38 A16,16 0 1,1 53.99,38 Z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M54,47 A7,7 0 1,1 53.99,47 Z" />
-    <path android:fillColor="#F0B23C" android:pathData="M74.5,30.5 A5,5 0 1,1 74.49,30.5 Z" />
+    <!-- outer arc -->
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeAlpha="0.7"
+        android:strokeWidth="5.5" android:strokeLineCap="round"
+        android:pathData="M37.03,39.03 A24,24 0 0,1 70.97,39.03" />
+    <!-- inner arc -->
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF"
+        android:strokeWidth="5.5" android:strokeLineCap="round"
+        android:pathData="M44.1,46.1 A14,14 0 0,1 63.9,46.1" />
+    <!-- antenna dot -->
+    <path android:fillColor="#FFFFFF" android:pathData="M54,51.5 A4,4 0 1,1 53.99,51.5 Z" />
+    <!-- router body -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M36,64 H72 A5,5 0 0,1 77,69 V73 A5,5 0 0,1 72,78 H36 A5,5 0 0,1 31,73 V69 A5,5 0 0,1 36,64 Z" />
+    <!-- status lights -->
+    <path android:fillColor="#2FBF71" android:pathData="M40,68.5 A2.5,2.5 0 1,1 39.99,68.5 Z" />
+    <path android:fillColor="#2563EB" android:pathData="M48,68.5 A2.5,2.5 0 1,1 47.99,68.5 Z" />
+    <path android:fillColor="#2563EB" android:pathData="M56,68.5 A2.5,2.5 0 1,1 55.99,68.5 Z" />
 </vector>

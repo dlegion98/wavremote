@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -133,5 +134,27 @@ fun ConnectScreen(vm: AppViewModel) {
                 )
             }
         }
+    }
+}
+
+/** Shown on launch while the app signs in to the router it used last time. */
+@Composable
+fun StartingScreen(vm: AppViewModel) {
+    Column(
+        Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        SignalMap(online = true, satellites = 0, devices = 0)
+        Spacer(Modifier.height(8.dp))
+        Text("Connecting to your router", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            vm.lastHost ?: "",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(24.dp))
+        TextButton(onClick = vm::backToConnect) { Text("Find a different router") }
     }
 }

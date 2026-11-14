@@ -1,5 +1,12 @@
 package com.dayo.wavremote
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -110,17 +117,20 @@ fun MainScreen(vm: AppViewModel) {
             // Flat tab bar: hairline top border, accent marker over the active tab, no pill indicator.
             Column(Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Row(Modifier.fillMaxWidth().navigationBarsPadding().height(58.dp)) {
+                Row(Modifier.fillMaxWidth().navigationBarsPadding().height(62.dp)) {
                     TABS.forEach { t ->
                         val sel = vm.tab == t.tab
-                        val c = if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        val c by animateColorAsState(
+                            if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tween(200), label = "tabColor")
+                        val marker by animateDpAsState(if (sel) 32.dp else 0.dp, tween(220), label = "tabMarker")
                         Column(
                             Modifier.weight(1f).fillMaxHeight().clickable { vm.tab = t.tab },
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Box(Modifier.width(28.dp).height(2.dp).background(if (sel) MaterialTheme.colorScheme.primary else Color.Transparent))
-                            Spacer(Modifier.height(8.dp))
-                            Icon(if (sel) t.on else t.off, contentDescription = null, tint = c, modifier = Modifier.size(22.dp))
+                            Box(Modifier.width(marker).height(3.dp).background(MaterialTheme.colorScheme.primary))
+                            Spacer(Modifier.height(7.dp))
+                            Icon(if (sel) t.on else t.off, contentDescription = null, tint = c, modifier = Modifier.size(24.dp))
                             Spacer(Modifier.height(3.dp))
                             Text(t.label, style = MaterialTheme.typography.labelSmall, color = c,
                                 fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium)
@@ -133,11 +143,17 @@ fun MainScreen(vm: AppViewModel) {
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            when (vm.tab) {
-                Tab.HOME -> DashboardHome(vm)
-                Tab.DEVICES -> DevicesTab(vm)
-                Tab.WIFI -> WifiTab(vm)
-                Tab.MORE -> MoreTab(vm)
+            AnimatedContent(
+                targetState = vm.tab,
+                transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(100)) },
+                label = "tab",
+            ) { tab ->
+                when (tab) {
+                    Tab.HOME -> DashboardHome(vm)
+                    Tab.DEVICES -> DevicesTab(vm)
+                    Tab.WIFI -> WifiTab(vm)
+                    Tab.MORE -> MoreTab(vm)
+                }
             }
         }
     }

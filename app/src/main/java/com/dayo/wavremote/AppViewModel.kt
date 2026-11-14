@@ -16,6 +16,8 @@ import org.json.JSONObject
 
 sealed interface Screen {
     data object Connect : Screen
+    /** Launch screen while signing in to the remembered router. */
+    data object Starting : Screen
     data class Login(val host: String) : Screen
     data object Main : Screen
     data object WebSettings : Screen
@@ -32,7 +34,9 @@ enum class Tab { HOME, DEVICES, WIFI, MORE }
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences("wavremote", Context.MODE_PRIVATE)
 
-    var screen by mutableStateOf<Screen>(Screen.Connect); private set
+    var screen by mutableStateOf<Screen>(
+        if (prefs.getString("lastHost", null) != null) Screen.Starting else Screen.Connect
+    ); private set
     var tab by mutableStateOf(Tab.HOME)
 
     // ---- connect
@@ -151,6 +155,26 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun backToConnect() {
         screen = Screen.Connect
+        if (scanResults.isEmpty() && !scanning) scan()
+    }
+
+    /** True when a sign-in is remembered for [host], so it can be retried without the password. */
+    fun hasSavedLogin(host: String): Boolean = prefs.getString("hash:$host", null) != null
+
+    /** On launch, skip the search and go straight to the router used last time. */
+    private fun autoConnect(saved: String) {
+        autoLoginTried = true
+        val ctx = getApplication<Application>()
+        val info = WifiNetwork.current(ctx)
+        wifiInfo = info
+        WifiNetwork.bindAppToWifi(ctx, info)
+        val hash = prefs.getString("hash:$saved", null)
+        if (hash != null) {
+            doLogin(saved, hash, remember = true)
+        } else {
+            screen = Screen.Login(saved)
+            checkSetup(saved)
+        }
     }
 
     private fun newApi(host: String) =
@@ -192,6 +216,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: Exception) {
                 if (e is RouterException) prefs.edit().remove("hash:$host").apply()
                 loginError = friendly(e)
+                if (screen is Screen.Starting) screen = Screen.Login(host)
             } finally {
                 loginBusy = false
             }
@@ -204,7 +229,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         api = null
         if (forget && h != null) prefs.edit().remove("hash:$h").apply()
         clearData()
-        screen = Screen.Connect
+        loginError = null
+        screen = if (h != null) Screen.Login(h) else Screen.Connect
     }
 
     private fun clearData() {
@@ -516,7 +542,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // Runs last, so every property above is initialised first.
     init {
-        scan()
+        val saved = lastHost
+        if (saved != null) autoConnect(saved) else scan()
         checkForUpdate(manual = false)
     }
 }

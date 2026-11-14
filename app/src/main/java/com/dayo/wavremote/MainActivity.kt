@@ -6,7 +6,17 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
@@ -23,21 +33,33 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun Root(vm: AppViewModel = viewModel()) {
-    when (val s = vm.screen) {
-        Screen.Connect -> ConnectScreen(vm)
-        is Screen.Login -> {
-            BackHandler { vm.backToConnect() }
-            LoginScreen(vm, s.host)
-        }
-        Screen.Main -> MainScreen(vm)
-        is Screen.Settings -> {
-            BackHandler { vm.closeSettings() }
-            val page = s.page
-            if (page == null) SettingsListScreen(vm) else SettingsRouter(vm, page)
-        }
-        Screen.WebSettings -> {
-            BackHandler { vm.closeWebSettings() }
-            WebSettingsScreen(host = vm.host ?: vm.lastHost ?: "192.168.20.1", onClose = vm::closeWebSettings)
+    // The Surface sets the default text colour for every screen (light on dark).
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        AnimatedContent(
+            targetState = vm.screen,
+            transitionSpec = {
+                (fadeIn(tween(240)) + slideInVertically(tween(240)) { it / 24 }) togetherWith fadeOut(tween(120))
+            },
+            label = "screen",
+        ) { s ->
+            when (s) {
+                Screen.Connect -> ConnectScreen(vm)
+                Screen.Starting -> StartingScreen(vm)
+                is Screen.Login -> {
+                    BackHandler { vm.backToConnect() }
+                    LoginScreen(vm, s.host)
+                }
+                Screen.Main -> MainScreen(vm)
+                is Screen.Settings -> {
+                    BackHandler { vm.closeSettings() }
+                    val page = s.page
+                    if (page == null) SettingsListScreen(vm) else SettingsRouter(vm, page)
+                }
+                Screen.WebSettings -> {
+                    BackHandler { vm.closeWebSettings() }
+                    WebSettingsScreen(host = vm.host ?: vm.lastHost ?: "192.168.20.1", onClose = vm::closeWebSettings)
+                }
+            }
         }
     }
 }
