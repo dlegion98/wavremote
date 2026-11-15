@@ -35,6 +35,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 
@@ -144,7 +147,8 @@ fun Switch(
             .clip(RoundedCornerShape(5.dp))
             .background(track)
             .border(1.dp, if (checked) Color.Transparent else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(5.dp))
-            .clickable(enabled = enabled && onCheckedChange != null) { onCheckedChange?.invoke(!checked) }
+            .clickable(enabled = enabled && onCheckedChange != null, role = Role.Switch) { onCheckedChange?.invoke(!checked) }
+            .semantics { stateDescription = if (checked) "On" else "Off" }
             .alpha(if (enabled) 1f else 0.4f),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -161,7 +165,8 @@ fun Checkbox(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?) {
             .clip(RoundedCornerShape(4.dp))
             .background(if (checked) MaterialTheme.colorScheme.primary else Color.Transparent)
             .border(1.5.dp, if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-            .clickable(enabled = onCheckedChange != null) { onCheckedChange?.invoke(!checked) },
+            .clickable(enabled = onCheckedChange != null, role = Role.Checkbox) { onCheckedChange?.invoke(!checked) }
+            .semantics { stateDescription = if (checked) "Ticked" else "Not ticked" },
         contentAlignment = Alignment.Center,
     ) {
         if (checked) Icon(Icons.Rounded.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))

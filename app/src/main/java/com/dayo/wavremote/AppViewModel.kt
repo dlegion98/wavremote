@@ -246,6 +246,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun refreshOverview(quiet: Boolean = false) = load(quiet, { it.overview() }) { overview = it }
     fun refreshDevices(quiet: Boolean = false) = load(quiet, { it.devices() }) {
         devices = it
+        val now = System.currentTimeMillis()
+        val next = DeviceBook.record(seen, it, now)
+        val grew = next.size != seen.size
+        seen = next
+        if (grew || now - seenSavedAt > 60_000) {
+            seenSavedAt = now
+            DeviceBook.saveSeen(prefs, next)
+        }
         val sample = TrafficSample(System.currentTimeMillis(), it.online.sumOf { d -> d.downKBs }, it.online.sumOf { d -> d.upKBs })
         trafficHistory = (trafficHistory + sample).takeLast(60)
         Widgets.pushFromApp(getApplication<Application>(), overview, it)
@@ -321,6 +329,37 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun forget(d: Device) =
         action("Removed ${d.name}", { refreshDevices(true) }) { it.forgetOffline(d.mac) }
+
+    // ---- favourites and history (kept on this phone only)
+
+    var favourites by mutableStateOf(DeviceBook.loadFavourites(prefs)); private set
+    var seen by mutableStateOf(DeviceBook.loadSeen(prefs)); private set
+    private var seenSavedAt = 0L
+
+    /** Device to open as soon as the Devices tab is shown (set from Home). */
+    var focusMac by mutableStateOf<String?>(null)
+
+    var deviceSort by mutableStateOf(prefs.getString("deviceSort", "Name") ?: "Name"); private set
+
+    fun chooseSort(sort: String) {
+        deviceSort = sort
+        prefs.edit().putString("deviceSort", sort).apply()
+    }
+
+    fun isFavourite(d: Device): Boolean = DeviceBook.key(d.mac) in favourites
+
+    fun toggleFavourite(d: Device) {
+        val k = DeviceBook.key(d.mac)
+        val next = if (k in favourites) favourites - k else favourites + k
+        favourites = next
+        DeviceBook.saveFavourites(prefs, next)
+        message = if (k in next) "${d.name} added to favourites" else "${d.name} removed from favourites"
+    }
+
+    fun openDevice(d: Device) {
+        focusMac = d.mac
+        tab = Tab.DEVICES
+    }
 
     fun reboot() = action("Rebooting — the network will be back in about 2 minutes.") { it.reboot() }
 

@@ -54,6 +54,8 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.rememberCoroutineScope
@@ -92,22 +94,31 @@ fun DevicesTab(vm: AppViewModel) {
     var selectedMac by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("All") }
-    var sort by remember { mutableStateOf("Name") }
+    val sort = vm.deviceSort
     val ctx = LocalContext.current
+    // Home can ask for one device to be opened straight away.
+    LaunchedEffect(vm.focusMac) {
+        vm.focusMac?.let { mac ->
+            selectedMac = mac
+            vm.focusMac = null
+        }
+    }
     fun matches(d: Device) = (query.isBlank() || listOf(d.name, d.ip, d.mac).any { it.contains(query.trim(), ignoreCase = true) }) &&
         when (filter) {
+            "Favourites" -> vm.isFavourite(d)
             "Wi-Fi" -> !d.isWired
             "Wired" -> d.isWired
             "Blocked" -> d.blocked
             "Limited" -> d.hasLimit
             else -> true
         }
-    fun sorted(l: List<Device>) = when (sort) {
+    // Favourites always come first; the chosen order applies within each part.
+    fun sorted(l: List<Device>): List<Device> = when (sort) {
         "Speed" -> l.sortedByDescending { it.downKBs + it.upKBs }
         "Signal" -> l.sortedByDescending { if (it.isWired) 101 else it.rssi }
         "Recent" -> l.sortedBy { it.onlineSec }
         else -> l.sortedBy { it.name.lowercase() }
-    }
+    }.sortedBy { if (vm.isFavourite(it)) 0 else 1 }
 
     LazyColumn(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
@@ -145,7 +156,7 @@ fun DevicesTab(vm: AppViewModel) {
                 )
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
-                    listOf("All", "Wi-Fi", "Wired", "Blocked", "Limited").forEach { f ->
+                    listOf("All", "Favourites", "Wi-Fi", "Wired", "Blocked", "Limited").forEach { f ->
                         FilterChip(selected = filter == f, onClick = { filter = f }, label = { Text(f) })
                     }
                     Spacer(Modifier.width(4.dp))
@@ -155,11 +166,11 @@ fun DevicesTab(vm: AppViewModel) {
                             leadingIcon = { Icon(Icons.Rounded.Sort, null, Modifier.size(18.dp)) })
                         DropdownMenu(expanded = sortOpen, onDismissRequest = { sortOpen = false }) {
                             listOf("Name", "Speed", "Signal", "Recent").forEach { o ->
-                                DropdownMenuItem(text = { Text(o) }, onClick = { sort = o; sortOpen = false })
+                                DropdownMenuItem(text = { Text(o) }, onClick = { vm.chooseSort(o); sortOpen = false })
                             }
                         }
                     }
-                    AssistChip(onClick = { shareDeviceList(ctx, list) }, label = { Text("Export") },
+                    AssistChip(onClick = { shareDeviceList(ctx, list, vm.favourites, vm.seen) }, label = { Text("Export") },
                         leadingIcon = { Icon(Icons.Rounded.IosShare, null, Modifier.size(18.dp)) })
                 }
             }
@@ -173,12 +184,20 @@ fun DevicesTab(vm: AppViewModel) {
                 GroupLabel("Online now")
                 Group {
                     if (online.isEmpty()) GroupRow(
-                        if (list.online.isEmpty()) "Nothing is connected" else "No matches",
-                        if (list.online.isEmpty()) "Devices appear here when they join your Wi-Fi." else "Try a different search or filter.",
+                        when {
+                            list.online.isEmpty() -> "Nothing is connected"
+                            filter == "Favourites" && vm.favourites.isEmpty() -> "No favourites yet"
+                            else -> "No matches"
+                        },
+                        when {
+                            list.online.isEmpty() -> "Devices appear here when they join your Wi-Fi."
+                            filter == "Favourites" && vm.favourites.isEmpty() -> "Open a device and tap the star to keep it at the top."
+                            else -> "Try a different search or filter."
+                        },
                     )
                     online.forEachIndexed { i, d ->
                         if (i > 0) GroupDivider()
-                        DeviceRow(d) { selectedMac = d.mac }
+                        DeviceRow(d, vm.isFavourite(d), vm.seen[DeviceBook.key(d.mac)]?.last) { selectedMac = d.mac }
                     }
                 }
             }
@@ -187,7 +206,7 @@ fun DevicesTab(vm: AppViewModel) {
                 Group {
                     offline.forEachIndexed { i, d ->
                         if (i > 0) GroupDivider()
-                        DeviceRow(d) { selectedMac = d.mac }
+                        DeviceRow(d, vm.isFavourite(d), vm.seen[DeviceBook.key(d.mac)]?.last) { selectedMac = d.mac }
                     }
                 }
             }
@@ -208,12 +227,12 @@ fun DevicesTab(vm: AppViewModel) {
 }
 
 @Composable
-private fun DeviceRow(d: Device, onClick: () -> Unit) {
+private fun DeviceRow(d: Device, favourite: Boolean, lastSeen: Long?, onClick: () -> Unit) {
     val wav = Wav.colors
     val muted = !d.online
     GroupRow(
         title = d.name,
-        subtitle = if (d.online) "${d.connection}, ${d.ip}" else "Last seen offline",
+        subtitle = if (d.online) "${d.connection}, ${d.ip}" else if (lastSeen != null) "Last online ${formatAgo(lastSeen)}" else "Offline",
         icon = deviceIcon(d),
         iconTint = when {
             d.blocked -> wav.fault
@@ -223,6 +242,7 @@ private fun DeviceRow(d: Device, onClick: () -> Unit) {
         onClick = onClick,
         trailing = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (favourite) Icon(Icons.Rounded.Star, "Favourite", tint = wav.activity, modifier = Modifier.size(16.dp))
                 when {
                     d.blocked -> Tag("Blocked", wav.fault)
                     d.hasLimit -> Tag("Limited", wav.activity)
@@ -248,6 +268,9 @@ private fun DeviceSheet(vm: AppViewModel, d: Device, list: DeviceList, onDone: (
     var limiting by remember { mutableStateOf(false) }
     var forgetting by remember { mutableStateOf(false) }
     val wav = Wav.colors
+    val sheetCtx = LocalContext.current
+    val favourite = vm.isFavourite(d)
+    val history = vm.seen[DeviceBook.key(d.mac)]
 
     Column(
         Modifier.padding(horizontal = 16.dp).padding(bottom = 32.dp),
@@ -267,6 +290,13 @@ private fun DeviceSheet(vm: AppViewModel, d: Device, list: DeviceList, onDone: (
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+            IconButton(onClick = { vm.toggleFavourite(d) }) {
+                Icon(
+                    if (favourite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                    if (favourite) "Remove from favourites" else "Add to favourites",
+                    tint = if (favourite) wav.activity else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             IconButton(onClick = { renaming = true }) { Icon(Icons.Rounded.Edit, "Rename") }
         }
@@ -288,9 +318,15 @@ private fun DeviceSheet(vm: AppViewModel, d: Device, list: DeviceList, onDone: (
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 if (d.online) {
                     InfoRow("Connection", d.connection)
-                    InfoRow("IP address", d.ip)
+                    InfoRow("IP address", d.ip, onClick = {
+                        copyText(sheetCtx, "IP address", d.ip)
+                        vm.message = "IP address copied"
+                    })
                 }
-                InfoRow("MAC address", d.mac.uppercase())
+                InfoRow("MAC address", d.mac.uppercase(), onClick = {
+                    copyText(sheetCtx, "MAC address", d.mac.uppercase())
+                    vm.message = "MAC address copied"
+                })
                 if (isPrivateMac(d.mac)) Text(
                     "This is a private address the device made up for your network, so the name may not identify it.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -299,6 +335,15 @@ private fun DeviceSheet(vm: AppViewModel, d: Device, list: DeviceList, onDone: (
                 if (d.online) {
                     InfoRow("Connected for", formatDuration(d.onlineSec))
                 }
+                if (history != null) {
+                    if (!d.online) InfoRow("Last online", formatAgo(history.last).replaceFirstChar { c -> c.uppercase() })
+                    InfoRow("First noticed", formatDay(history.first))
+                }
+                Text(
+                    "Tap an address to copy it.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp, bottom = 6.dp),
+                )
             }
         }
 

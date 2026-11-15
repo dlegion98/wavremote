@@ -28,6 +28,14 @@ router's web UI scripts.
 - **Devices**: search, filter (Wi-Fi/wired/blocked/limited), sort (name/speed/signal/recent), CSV export,
   and private-MAC detection.
 
+## Devices (v1.3)
+- **Favourites**: star a device to keep it at the top of Devices and show it on Home.
+- **Device history**: the app remembers when each device was last online and when it first noticed it.
+  This is kept on the phone only.
+- Tap an IP or MAC address to copy it. The device list remembers its sort order.
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each update.
+
 ## API notes (protocol.csp)
 | Action | Call |
 |---|---|

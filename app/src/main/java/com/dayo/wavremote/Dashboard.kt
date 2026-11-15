@@ -434,6 +434,40 @@ fun DashboardHome(vm: AppViewModel) {
             }
         }
 
+        // ---- favourites
+        dl?.let { list ->
+            val favs = (list.online + list.offline).filter { vm.isFavourite(it) }.sortedBy { it.name.lowercase() }.take(6)
+            if (favs.isNotEmpty()) item {
+                GroupLabel("Favourites")
+                Group {
+                    favs.forEachIndexed { i, d ->
+                        if (i > 0) GroupDivider()
+                        val last = vm.seen[DeviceBook.key(d.mac)]?.last
+                        GroupRow(
+                            d.name,
+                            when {
+                                d.online && d.blocked -> "Online, internet blocked"
+                                d.online -> "Online, ${d.connection}"
+                                last != null -> "Offline, last online ${formatAgo(last)}"
+                                else -> "Offline"
+                            },
+                            icon = deviceIcon(d),
+                            iconTint = when {
+                                d.blocked -> wav.fault
+                                !d.online -> MaterialTheme.colorScheme.onSurfaceVariant
+                                else -> MaterialTheme.colorScheme.primary
+                            },
+                            onClick = { vm.openDevice(d) },
+                            trailing = {
+                                if (d.online && !d.blocked && d.downKBs + d.upKBs > 0) Throughput(d)
+                                else StatusDot(if (!d.online) MaterialTheme.colorScheme.outline else if (d.blocked) wav.fault else wav.signal)
+                            },
+                        )
+                    }
+                }
+            }
+        }
+
         // ---- top clients
         dl?.let { list ->
             val busy = list.online.filter { !it.blocked && it.downKBs + it.upKBs > 0 }.sortedByDescending { it.downKBs + it.upKBs }.take(4)
@@ -443,7 +477,7 @@ fun DashboardHome(vm: AppViewModel) {
                     busy.forEachIndexed { i, d ->
                         if (i > 0) GroupDivider()
                         GroupRow(
-                            d.name, d.connection, icon = deviceIcon(d), onClick = { vm.tab = Tab.DEVICES },
+                            d.name, d.connection, icon = deviceIcon(d), onClick = { vm.openDevice(d) },
                             trailing = { Throughput(d) },
                         )
                     }

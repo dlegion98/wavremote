@@ -140,19 +140,33 @@ fun isPrivateMac(mac: String): Boolean {
 
 // ================================================================ device list export
 
-fun shareDeviceList(ctx: Context, list: DeviceList) {
+fun shareDeviceList(
+    ctx: Context,
+    list: DeviceList,
+    favourites: Set<String> = emptySet(),
+    seen: Map<String, Seen> = emptyMap(),
+) {
     val rows = (list.online + list.offline).joinToString("\n") { d ->
+        val k = DeviceBook.key(d.mac)
+        val last = seen[k]?.last
         listOf(d.name, if (d.online) "online" else "offline", d.connection, d.ip, d.mac.uppercase(),
-            if (d.blocked) "blocked" else "", if (d.hasLimit) "limit ${d.limitDownKB}/${d.limitUpKB} KB/s" else "")
+            if (d.blocked) "blocked" else "", if (d.hasLimit) "limit ${d.limitDownKB}/${d.limitUpKB} KB/s" else "",
+            if (k in favourites) "favourite" else "",
+            when { d.online -> "now"; last != null -> formatDay(last); else -> "" })
             .joinToString(",") { "\"" + it.replace("\"", "'") + "\"" }
     }
-    val csv = "Name,Status,Connection,IP,MAC,Blocked,Limit\n$rows"
+    val csv = "Name,Status,Connection,IP,MAC,Blocked,Limit,Favourite,Last online\n$rows"
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "text/csv"
         putExtra(Intent.EXTRA_SUBJECT, "Devices on my network")
         putExtra(Intent.EXTRA_TEXT, csv)
     }
     ctx.startActivity(Intent.createChooser(send, "Share device list").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
+fun copyText(ctx: Context, label: String, text: String) {
+    val cm = ctx.getSystemService(android.content.ClipboardManager::class.java) ?: return
+    cm.setPrimaryClip(android.content.ClipData.newPlainText(label, text))
 }
 
 fun shareText(ctx: Context, subject: String, text: String) {

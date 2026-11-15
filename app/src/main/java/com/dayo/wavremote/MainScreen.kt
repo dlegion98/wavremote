@@ -166,8 +166,13 @@ fun Loading() {
 
 /** Label/value pair used inside sheets and dense groups. */
 @Composable
-fun InfoRow(label: String, value: String?) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
+fun InfoRow(label: String, value: String?, onClick: (() -> Unit)? = null) {
+    Row(
+        Modifier.fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
         Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f))
         Spacer(Modifier.width(12.dp))
