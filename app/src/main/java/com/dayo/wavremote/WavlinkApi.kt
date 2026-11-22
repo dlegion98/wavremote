@@ -311,7 +311,7 @@ class WavlinkApi(val host: String, private val network: Network?) {
 
     companion object {
         const val SESSION_EXPIRED = 10007
-        private const val BROWSER_UA = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 " +
+        const val BROWSER_UA = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36"
 
         fun hashPassword(password: String): String {

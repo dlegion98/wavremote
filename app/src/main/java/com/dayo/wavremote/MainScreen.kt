@@ -143,6 +143,17 @@ fun MainScreen(vm: AppViewModel) {
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            if (vm.away) Row(
+                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable { vm.openSettings(SettingsPage.AWAY) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.Public, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Away from home, connected through your VPN", style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
             AnimatedContent(
                 targetState = vm.tab,
                 transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(100)) },

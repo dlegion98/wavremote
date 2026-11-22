@@ -181,13 +181,13 @@ object Widgets {
             fail("Open WavRemote and sign in")
             return
         }
-        val wifi = WifiNetwork.current(ctx)
-        if (wifi == null) {
-            fail("Not on Wi-Fi")
+        val route = RouterLink.resolve(ctx, host)
+        if (route == null) {
+            fail(if (RouterLink.vpnActive(ctx)) "VPN doesn't reach the router" else "Away: turn on your VPN")
             return
         }
 
-        val api = WavlinkApi(host, wifi.network)
+        val api = WavlinkApi(route.host, route.network)
         try {
             api.login(hash)
         } catch (e: RouterException) {
@@ -301,7 +301,7 @@ object Widgets {
         v.setTextViewText(R.id.w_down, if (loaded) formatSpeed(s.downKBs) else "–")
         v.setTextViewText(R.id.w_up, if (loaded) formatSpeed(s.upKBs) else "–")
         val points = if (s.nodes == 1) "1 mesh point" else "${s.nodes} mesh points"
-        v.setTextViewText(R.id.w_footer, if (!loaded) "Tap refresh while on your home Wi-Fi"
+        v.setTextViewText(R.id.w_footer, if (!loaded) "Tap refresh at home or with your VPN on"
             else if (s.ssid.isEmpty()) points else "${s.ssid}, $points")
         v.setOnClickPendingIntent(R.id.w_root, openApp(ctx))
         v.setOnClickPendingIntent(R.id.w_refresh, action(ctx, ACTION_REFRESH, 1))

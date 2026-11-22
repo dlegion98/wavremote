@@ -1,5 +1,15 @@
 # Changelog
 
+## 22 November 2026
+
+New
+- Away from home. The app, widgets and new-device alerts now work when you're out, through a VPN to your home network (Tailscale or ZeroTier). A new page, More, Settings, VPN, Away from home, explains the setup and tests the connection.
+- A banner on every tab shows when you're connected away from home.
+
+Improved
+- The app reconnects by itself when your phone moves between home Wi-Fi and a VPN.
+- Clearer messages when the router can't be reached, saying whether to join the Wi-Fi or turn on the VPN.
+
 ## 15 November 2026
 
 New

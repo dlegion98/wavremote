@@ -57,7 +57,7 @@ private fun Root(vm: AppViewModel = viewModel()) {
                 }
                 Screen.WebSettings -> {
                     BackHandler { vm.closeWebSettings() }
-                    WebSettingsScreen(host = vm.host ?: vm.lastHost ?: "192.168.20.1", onClose = vm::closeWebSettings)
+                    WebSettingsScreen(host = vm.apiHost ?: vm.host ?: vm.lastHost ?: "192.168.20.1", onClose = vm::closeWebSettings)
                 }
             }
         }

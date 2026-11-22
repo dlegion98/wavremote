@@ -38,6 +38,7 @@ import androidx.compose.material.icons.rounded.Numbers
 import androidx.compose.material.icons.rounded.Password
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.PublicOff
+import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.RestartAlt
@@ -114,6 +115,7 @@ enum class SettingsPage(val group: String, val title: String, val subtitle: Stri
     REMOTE("Ports & security", "Remote management", "Reach the router's web page from the internet", Icons.Rounded.PublicOff),
     ADGUARD("Ports & security", "AdGuard Home", "Network-wide ad blocking", Icons.Rounded.Block),
     VPN_CLIENT("VPN", "VPN client", "Connect the router to a PPTP/L2TP server", Icons.Rounded.VpnKey),
+    AWAY("VPN", "Away from home", "See and control your network from anywhere", Icons.Rounded.TravelExplore),
     ZEROTIER("VPN", "ZeroTier", "Join a ZeroTier network", Icons.Rounded.Hub),
     TIME("System", "Time zone", "Router clock and daylight saving", Icons.Rounded.Schedule),
     LED("System", "Lights", "Status LED on or off", Icons.Rounded.Lightbulb),
@@ -135,7 +137,7 @@ val SETTINGS_CATEGORIES = listOf(
     SettingsCategory("Wi-Fi", "Radios, guests, kids, mesh", Icons.Rounded.SettingsInputAntenna),
     SettingsCategory("Network", "Internet, LAN, DNS, QoS", Icons.Rounded.Language),
     SettingsCategory("Ports & security", "Forwarding, firewall, remote", Icons.Rounded.Security),
-    SettingsCategory("VPN", "VPN client, ZeroTier", Icons.Rounded.VpnKey),
+    SettingsCategory("VPN", "Away from home, ZeroTier", Icons.Rounded.VpnKey),
     SettingsCategory("System", "Time, firmware, diagnostics", Icons.Rounded.Memory),
 )
 
@@ -239,6 +241,7 @@ fun SettingsRouter(vm: AppViewModel, page: SettingsPage) {
         SettingsPage.REMOTE -> RemoteAccessPage(vm)
         SettingsPage.ADGUARD -> AdGuardPage(vm)
         SettingsPage.VPN_CLIENT -> VpnClientPage(vm)
+        SettingsPage.AWAY -> AwayPage(vm)
         SettingsPage.ZEROTIER -> ZeroTierPage(vm)
         SettingsPage.TIME -> TimeZonePage(vm)
         SettingsPage.LED -> LedPage(vm)

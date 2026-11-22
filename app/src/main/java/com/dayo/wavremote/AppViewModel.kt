@@ -165,9 +165,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun autoConnect(saved: String) {
         autoLoginTried = true
         val ctx = getApplication<Application>()
-        val info = WifiNetwork.current(ctx)
-        wifiInfo = info
-        WifiNetwork.bindAppToWifi(ctx, info)
+        wifiInfo = WifiNetwork.current(ctx)
         val hash = prefs.getString("hash:$saved", null)
         if (hash != null) {
             doLogin(saved, hash, remember = true)
@@ -177,12 +175,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun newApi(host: String) =
-        WavlinkApi(host, WifiNetwork.current(getApplication())?.network)
+    /** True while connected through a VPN instead of the home Wi-Fi. */
+    var away by mutableStateOf(false); private set
+
+    /** The address the app is actually talking to (differs from [host] when a VPN gives the router another one). */
+    val apiHost: String? get() = api?.host
+
+    private suspend fun connectApi(host: String): WavlinkApi = withContext(Dispatchers.IO) {
+        val ctx = getApplication<Application>()
+        val r = RouterLink.resolve(ctx, host) ?: throw RouterUnreachable(RouterLink.unreachableText(ctx))
+        away = r.away
+        WavlinkApi(r.host, r.network)
+    }
 
     private fun checkSetup(host: String) {
         viewModelScope.launch {
-            val g = runCatching { withContext(Dispatchers.IO) { newApi(host).guide() } }.getOrNull()
+            val g = runCatching { connectApi(host).guide() }.getOrNull()
             needsSetup = g != null && g.has("init_status") && !g.truthy("init_status")
         }
     }
@@ -198,8 +206,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         loginBusy = true
         loginError = null
         viewModelScope.launch {
-            val a = newApi(host)
             try {
+                val a = connectApi(host)
                 withContext(Dispatchers.IO) { a.login(hash) }
                 api = a
                 this@AppViewModel.host = host
@@ -297,7 +305,60 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private var lastReconnect = 0L
+
+    /** The phone moved between home Wi-Fi and a VPN (or back): find the router again and sign in. */
+    private fun reconnectQuietly() {
+        val h = host ?: return
+        val hash = prefs.getString("hash:$h", null) ?: return
+        val now = System.currentTimeMillis()
+        if (now - lastReconnect < 30_000) return
+        lastReconnect = now
+        viewModelScope.launch {
+            try {
+                val a = connectApi(h)
+                withContext(Dispatchers.IO) { a.login(hash) }
+                api = a
+                refreshAll()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Still unreachable; the next refresh will try again.
+            }
+        }
+    }
+
+    // ---- away from home (settings page)
+
+    var awayHostSetting by mutableStateOf(RouterLink.awayHost(app)); private set
+    var routeCheck by mutableStateOf<String?>(null); private set
+    var routeChecking by mutableStateOf(false); private set
+
+    fun saveAwayHost(value: String) {
+        RouterLink.setAwayHost(getApplication(), value)
+        awayHostSetting = value.trim()
+        message = if (value.isBlank()) "Away address cleared." else "Away address saved."
+    }
+
+    fun testRoute() {
+        val h = host ?: lastHost ?: return
+        if (routeChecking) return
+        routeChecking = true
+        routeCheck = null
+        viewModelScope.launch {
+            val ctx = getApplication<Application>()
+            val r = withContext(Dispatchers.IO) { RouterLink.resolve(ctx, h) }
+            routeCheck = when {
+                r == null -> RouterLink.unreachableText(ctx)
+                !r.away -> "Connected at home over Wi-Fi."
+                else -> "Reached your router at ${r.host} through your VPN. The app works away from home."
+            }
+            routeChecking = false
+        }
+    }
+
     private fun handleError(e: Exception, quiet: Boolean) {
+        if (e is java.io.IOException && e !is RouterUnreachable) reconnectQuietly()
         if (e is RouterException && e.code == WavlinkApi.SESSION_EXPIRED) {
             api = null
             screen = Screen.Login(host ?: return)
@@ -311,7 +372,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         is RouterException -> e.message ?: "Router error"
         is java.net.SocketTimeoutException -> "The router didn't answer in time."
         is java.net.ConnectException, is java.net.NoRouteToHostException ->
-            "Can't reach the router. Make sure you're on its Wi-Fi."
+            if (away) "Lost the connection through your VPN. Trying again…"
+            else "Can't reach the router. At home, join its Wi-Fi. Away, turn on your VPN."
         else -> e.message ?: e.javaClass.simpleName
     }
 

@@ -32,11 +32,12 @@ class NewDeviceWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(
         if (!prefs.getBoolean(KEY_ENABLED, false)) return Result.success()
         val host = prefs.getString("lastHost", null) ?: return Result.success()
         val hash = prefs.getString("hash:$host", null) ?: return Result.success()
-        val wifi = WifiNetwork.current(ctx) ?: return Result.success()   // not home: nothing to do
+        // Home Wi-Fi or a VPN to home; neither means there's nothing to check right now.
+        val route = RouterLink.resolve(ctx, host) ?: return Result.success()
 
         val list = try {
             withContext(Dispatchers.IO) {
-                val api = WavlinkApi(host, wifi.network)
+                val api = WavlinkApi(route.host, route.network)
                 api.login(hash)
                 api.devices()
             }
