@@ -18,6 +18,15 @@
       "screenshots": [],
       "versions": [
         {
+          "version": "1.0.5",
+          "buildVersion": "5",
+          "date": "2026-11-22T23:10:34Z",
+          "localizedDescription": "iOS: serve the IPA from raw.githubusercontent.com",
+          "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.5.ipa",
+          "size": 817112,
+          "minOSVersion": "16.0"
+        },
+        {
           "version": "1.0.4",
           "buildVersion": "4",
           "date": "2026-11-22T22:55:03Z",
@@ -27,10 +36,10 @@
           "minOSVersion": "16.0"
         }
       ],
-      "version": "1.0.4",
-      "versionDate": "2026-11-22T22:55:03Z",
-      "versionDescription": "iOS: fix QR escape characters",
-      "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.4.ipa",
+      "version": "1.0.5",
+      "versionDate": "2026-11-22T23:10:34Z",
+      "versionDescription": "iOS: serve the IPA from raw.githubusercontent.com",
+      "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.5.ipa",
       "size": 817112,
       "appPermissions": {
         "entitlements": [],
