@@ -5,7 +5,8 @@ import CoreImage.CIFilterBuiltins
 func wifiQR(ssid: String, password: String, open: Bool) -> UIImage? {
     func esc(_ s: String) -> String {
         var o = ""
-        for c in s { if "\;,:\"".contains(c) { o.append("\\") }; o.append(c) }
+        let special: Set<Character> = ["\\", ";", ",", ":", "\""]
+        for c in s { if special.contains(c) { o.append("\\") }; o.append(c) }
         return o
     }
     let text = open ? "WIFI:T:nopass;S:\(esc(ssid));;" : "WIFI:T:WPA;S:\(esc(ssid));P:\(esc(password));;"
