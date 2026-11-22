@@ -1,0 +1,90 @@
+name: iOS build
+
+# Builds an unsigned IPA (SideStore signs it on the phone), publishes it as a pre-release,
+# and updates sidestore.json so SideStore offers the new version.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+jobs:
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Version
+        run: |
+          echo "N=${{ github.run_number }}" >> "$GITHUB_ENV"
+          echo "VER=1.0.${{ github.run_number }}" >> "$GITHUB_ENV"
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project WavRemote.xcodeproj -target WavRemote -configuration Release -sdk iphoneos \
+            SYMROOT="$PWD/build" \
+            MARKETING_VERSION="$VER" CURRENT_PROJECT_VERSION="$N" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build > build.log 2>&1 || true
+          tail -n 5 build.log
+          test -d build/Release-iphoneos/WavRemote.app
+
+      # Compile errors become annotations on the run, readable without signing in.
+      - name: Report errors
+        if: failure()
+        working-directory: ios
+        run: |
+          grep -E "error:|fatal error" build.log | sort -u | head -45 | while IFS= read -r line; do
+            echo "::error::${line//$'\n'/ }"
+          done
+          tail -n 30 build.log
+
+      - name: Package IPA
+        working-directory: ios
+        run: |
+          mkdir -p Payload
+          cp -R build/Release-iphoneos/WavRemote.app Payload/
+          zip -qry "WavRemote-$VER.ipa" Payload
+
+      - name: Publish pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-${{ env.VER }}
+          name: WavRemote for iOS ${{ env.VER }}
+          body: ${{ github.event.head_commit.message || 'Manual build' }}
+          files: ios/WavRemote-*.ipa
+          prerelease: true
+          make_latest: false
+
+      - name: Update SideStore source
+        env:
+          NOTES: ${{ github.event.head_commit.message || 'Improvements and fixes.' }}
+        run: |
+          python3 ios/make_source.py "$VER" "$N" "ios/WavRemote-$VER.ipa" \
+            "https://github.com/${{ github.repository }}/releases/download/ios-$VER/WavRemote-$VER.ipa" \
+            "$(printf '%s' "$NOTES" | head -n 1)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git add sidestore.json
+          git commit -m "SideStore source: WavRemote $VER [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && break
+            sleep 5
+          done

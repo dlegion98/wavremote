@@ -5,6 +5,10 @@ name: Build and release
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "ios/**"
+      - "sidestore.json"
+      - ".github/workflows/ios.yml"
   workflow_dispatch:
 
 permissions:

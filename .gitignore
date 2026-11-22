@@ -12,3 +12,8 @@ local.properties
 captures/
 # Signing key: never commit (it's in GitHub secrets)
 signing/
+ios/WavRemote.xcodeproj/
+ios/build/
+ios/Payload/
+ios/*.ipa
+ios/build.log
