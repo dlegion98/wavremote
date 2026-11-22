@@ -44,14 +44,18 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build > build.log 2>&1 || true
           tail -n 5 build.log
-          test -d build/Release-iphoneos/WavRemote.app
+          echo "::notice::Build output: $(ls build/Release-iphoneos 2>&1 | tr '\n' ' ')"
+          echo "::notice::Build log end: $(tail -n 3 build.log | tr '\n' ' ')"
+          # The .app folder can exist even when compiling failed, so check for the executable itself.
+          test -f build/Release-iphoneos/WavRemote.app/WavRemote
+          ls -la build/Release-iphoneos/WavRemote.app
 
       # Compile errors become annotations on the run, readable without signing in.
       - name: Report errors
         if: failure()
         working-directory: ios
         run: |
-          grep -E "error:|fatal error" build.log | sort -u | head -45 | while IFS= read -r line; do
+          grep -E "error:|fatal error|BUILD FAILED" build.log | sort -u | head -45 | while IFS= read -r line; do
             echo "::error::${line//$'\n'/ }"
           done
           tail -n 30 build.log
@@ -59,9 +63,13 @@ jobs:
       - name: Package IPA
         working-directory: ios
         run: |
-          mkdir -p Payload
-          cp -R build/Release-iphoneos/WavRemote.app Payload/
-          zip -qry "WavRemote-$VER.ipa" Payload
+          rm -rf Payload && mkdir -p Payload
+          ditto build/Release-iphoneos/WavRemote.app Payload/WavRemote.app
+          echo "::notice::App contents: $(ls Payload/WavRemote.app | tr '\n' ' ')"
+          test -f Payload/WavRemote.app/WavRemote
+          test -f Payload/WavRemote.app/Info.plist
+          ditto -c -k --sequesterRsrc --keepParent Payload "WavRemote-$VER.ipa"
+          echo "::notice::IPA size: $(stat -f %z "WavRemote-$VER.ipa") bytes"
 
       - name: Publish pre-release
         uses: softprops/action-gh-release@v2
