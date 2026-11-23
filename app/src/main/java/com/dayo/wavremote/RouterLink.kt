@@ -19,7 +19,7 @@ class RouterUnreachable(message: String) : IOException(message)
  * subnet route, ZeroTier, WireGuard…) carries the traffic.
  */
 object RouterLink {
-    data class Route(val host: String, val network: Network?, val away: Boolean)
+    data class Route(val host: String, val network: Network?, val away: Boolean, val proxy: java.net.Proxy? = null)
 
     private const val PREFS = "wavremote"
     private const val KEY_AWAY_HOST = "awayHost"
@@ -53,13 +53,21 @@ object RouterLink {
         for (h in candidates) {
             if (reachable(null, h)) return Route(h, null, away = true)
         }
+        // Last: built-in Tailscale, through its local proxy.
+        if (TailscaleBridge.waitUntilRunning(ctx, 10_000) && TailscaleBridge.reaches(homeHost)) {
+            TailscaleBridge.proxy()?.let { return Route(homeHost, null, away = true, proxy = it) }
+        }
         return null
     }
 
     fun unreachableText(ctx: Context): String = when {
+        TailscaleBridge.enabled(ctx) && TailscaleBridge.status().state == "NeedsLogin" ->
+            "Sign in to built-in Tailscale to reach your router from here."
+        TailscaleBridge.enabled(ctx) && TailscaleBridge.status().running ->
+            "Tailscale is connected, but it doesn't reach your router. Check your home server shares 192.168.20.0/24 and the route is approved."
         vpnActive(ctx) -> "Your VPN is on, but it doesn't reach your router. Check it routes to your home network (More, Settings, Away from home)."
-        WifiNetwork.current(ctx) != null -> "Can't reach your router. At home, join its Wi-Fi. Away, turn on your VPN first."
-        else -> "You're away from home. Turn on your VPN to reach your router (More, Settings, Away from home)."
+        WifiNetwork.current(ctx) != null -> "Can't reach your router. At home, join its Wi-Fi. Away, switch on built-in Tailscale."
+        else -> "You're away from home. Switch on built-in Tailscale to reach your router."
     }
 
     /** True when something answers at [host]'s router page within a couple of seconds. */

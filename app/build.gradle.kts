@@ -82,4 +82,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("com.google.zxing:core:3.5.3")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+    // Built-in Tailscale: the Go bridge in tailscale-bridge/, built with gomobile
+    // (CI does this; locally run tailscale-bridge/build-android.sh first).
+    implementation(files("libs/tsbridge.aar"))
 }

@@ -187,7 +187,7 @@ object Widgets {
             return
         }
 
-        val api = WavlinkApi(route.host, route.network)
+        val api = WavlinkApi(route.host, route.network, route.proxy)
         try {
             api.login(hash)
         } catch (e: RouterException) {

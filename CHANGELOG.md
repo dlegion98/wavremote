@@ -1,5 +1,10 @@
 # Changelog
 
+## 23 November 2026
+
+New
+- Built-in Tailscale (Android and iPhone). Switch it on under More, Settings, VPN, Away from home (or on the sign-in screen), sign in to your Tailscale account, and the app reaches your router from anywhere. No separate VPN app needed. Your home server still has to share 192.168.20.0/24 on Tailscale.
+
 ## 22 November 2026
 
 New

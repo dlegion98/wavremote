@@ -151,7 +151,7 @@ fun MainScreen(vm: AppViewModel) {
             ) {
                 Icon(Icons.Rounded.Public, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(10.dp))
-                Text("Away from home, connected through your VPN", style = MaterialTheme.typography.labelLarge,
+                Text("Away from home, connected through Tailscale or your VPN", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer)
             }
             AnimatedContent(

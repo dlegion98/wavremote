@@ -19,7 +19,7 @@ class RouterException(val code: Int, message: String) : Exception(message)
  *  - After login, every call carries ?token=<token>.
  *  - Login sends usrid = md5("admin" + password).
  */
-class WavlinkApi(val host: String, private val network: Network?) {
+class WavlinkApi(val host: String, private val network: Network?, private val proxy: java.net.Proxy? = null) {
     @Volatile var token: String? = null
         private set
     @Volatile var loginHash: String? = null
@@ -36,9 +36,13 @@ class WavlinkApi(val host: String, private val network: Network?) {
      */
     private fun open(url: String): HttpURLConnection {
         val u = URL(url)
-        val c = (network?.openConnection(u) ?: u.openConnection()) as HttpURLConnection
-        c.connectTimeout = 8000
-        c.readTimeout = 20000
+        val c = (when {
+            proxy != null -> u.openConnection(proxy)   // built-in Tailscale
+            network != null -> network.openConnection(u)
+            else -> u.openConnection()
+        }) as HttpURLConnection
+        c.connectTimeout = if (proxy != null) 15000 else 8000
+        c.readTimeout = if (proxy != null) 30000 else 20000
         c.useCaches = false
         c.instanceFollowRedirects = false
         c.setRequestProperty("User-Agent", BROWSER_UA)

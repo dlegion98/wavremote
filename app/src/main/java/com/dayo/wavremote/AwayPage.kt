@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 fun AwayPage(vm: AppViewModel) {
     val ctx = LocalContext.current
     SettingsPageScaffold(vm, "Away from home", emptyList()) { _ ->
+        TailscaleCard()
+
         Section("Right now") {
             val vpn = RouterLink.vpnActive(ctx)
             Text(
@@ -49,7 +51,8 @@ fun AwayPage(vm: AppViewModel) {
             Note("2. Share your home network through it: run  tailscale up --advertise-routes=192.168.20.0/24  " +
                 "(use your router's network if it isn't 192.168.20.x).")
             Note("3. In the Tailscale admin page, approve that route for the machine.")
-            Note("4. Install Tailscale on this phone, sign in with the same account, and leave it on when you're out.")
+            Note("4. Switch on Built-in Tailscale above and sign in with the same account. " +
+                "(The Tailscale app works too, if you'd rather use that.)")
             Note("5. Tap Test the connection. Nothing needs filling in below.")
         }
 

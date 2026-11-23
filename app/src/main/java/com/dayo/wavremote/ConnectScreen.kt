@@ -106,6 +106,11 @@ fun ConnectScreen(vm: AppViewModel) {
         }
 
         item {
+            GroupLabel("Away from home?")
+            TailscaleCard()
+        }
+
+        item {
             GroupLabel("Know the address?")
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(

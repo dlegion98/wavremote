@@ -175,7 +175,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** True while connected through a VPN instead of the home Wi-Fi. */
+    /** True while connected through a VPN or built-in Tailscale instead of the home Wi-Fi. */
     var away by mutableStateOf(false); private set
 
     /** The address the app is actually talking to (differs from [host] when a VPN gives the router another one). */
@@ -185,7 +185,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val ctx = getApplication<Application>()
         val r = RouterLink.resolve(ctx, host) ?: throw RouterUnreachable(RouterLink.unreachableText(ctx))
         away = r.away
-        WavlinkApi(r.host, r.network)
+        WavlinkApi(r.host, r.network, r.proxy)
     }
 
     private fun checkSetup(host: String) {
@@ -644,6 +644,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // Runs last, so every property above is initialised first.
     init {
+        // Get built-in Tailscale connecting while the app looks for the router.
+        viewModelScope.launch(Dispatchers.IO) { TailscaleBridge.startIfEnabled(app) }
         val saved = lastHost
         if (saved != null) autoConnect(saved) else scan()
         checkForUpdate(manual = false)

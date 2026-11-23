@@ -105,5 +105,8 @@ fun LoginScreen(vm: AppViewModel, host: String) {
 
         Spacer(Modifier.height(4.dp))
         TextButton(onClick = vm::openWebSettings) { Text("Open the router's web page instead") }
+
+        GroupLabel("Away from home?")
+        TailscaleCard()
     }
 }

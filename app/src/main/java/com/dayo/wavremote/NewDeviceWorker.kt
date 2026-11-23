@@ -37,7 +37,7 @@ class NewDeviceWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(
 
         val list = try {
             withContext(Dispatchers.IO) {
-                val api = WavlinkApi(route.host, route.network)
+                val api = WavlinkApi(route.host, route.network, route.proxy)
                 api.login(hash)
                 api.devices()
             }
