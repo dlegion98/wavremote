@@ -67,6 +67,7 @@ struct MoreView: View {
                 .padding(16)
             }
             .refreshable { await model.refreshAll() }
+            .awayBanner()
             .background(Pro.bg)
             .navigationTitle("More")
             .sheet(isPresented: $showWeb) { RouterWebPage(host: model.host ?? "192.168.20.1").ignoresSafeArea() }

@@ -39,6 +39,7 @@ struct WifiView: View {
                 .padding(16)
             }
             .refreshable { await model.refreshWifi() }
+            .awayBanner()
             .background(Pro.bg)
             .navigationTitle("Wi-Fi")
             .sheet(isPresented: $editing) {

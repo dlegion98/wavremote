@@ -68,6 +68,7 @@ struct DevicesView: View {
                 .padding(16)
             }
             .refreshable { await model.refreshDevices() }
+            .awayBanner()
             .searchable(text: $query, prompt: "Name, IP or MAC")
             .background(Pro.bg)
             .navigationTitle("Devices")
