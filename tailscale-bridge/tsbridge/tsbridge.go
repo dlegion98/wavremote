@@ -62,6 +62,19 @@ func Start(dir, hostname string) error {
 		lastErr = err.Error()
 		return err
 	}
+	// Android apps have no HOME, cache or temp folder in their environment, and Tailscale
+	// panics when it can't find somewhere to keep log state. Point all of them inside dir.
+	for name, sub := range map[string]string{
+		"TS_LOGS_DIR":    "logs",
+		"XDG_CACHE_HOME": "cache",
+		"TMPDIR":         "tmp",
+		"HOME":           "",
+	} {
+		p := filepath.Join(dir, sub)
+		if err := os.MkdirAll(p, 0o700); err == nil && (name == "TS_LOGS_DIR" || os.Getenv(name) == "") {
+			os.Setenv(name, p)
+		}
+	}
 	// If Go itself crashes, write the details where the app can find them next launch.
 	if f, err := os.OpenFile(filepath.Join(dir, "crash.txt"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600); err == nil {
 		debug.SetCrashOutput(f, debug.CrashOptions{})

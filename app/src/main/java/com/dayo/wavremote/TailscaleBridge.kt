@@ -49,7 +49,7 @@ object TailscaleBridge {
         // If built-in Tailscale took the whole app down last time, switch it off and keep the details.
         if (CrashReporter.tailscaleCrashedLastTime(ctx)) {
             ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_ENABLED, false).apply()
-            startError = "It closed the app last time, so it was switched off. The crash details were saved."
+            startError = "It closed the app last time, so it was switched off. Switch it on again to retry."
             return
         }
         CrashReporter.tailscaleStarting(ctx)
