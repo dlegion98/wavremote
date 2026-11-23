@@ -1,4 +1,36 @@
-# WavRemote (Android)
+# WavRemote
+
+Control your Wavlink AX3000 mesh from your phone, instead of the WavRouter app. Android and iPhone.
+
+## Install
+
+### iPhone and iPad (SideStore or AltStore)
+
+Add this source in **SideStore** or **AltStore** (Sources, then **+**), then install WavRemote from it.
+New versions appear there as updates.
+
+```
+https://raw.githubusercontent.com/dlegion98/wavremote/main/sidestore.json
+```
+
+Or download the IPA and install it yourself:
+**[Download WavRemote.ipa](https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote.ipa)**
+(older versions are in [ios-builds](https://github.com/dlegion98/wavremote/tree/ios-builds)).
+
+The first time it opens, allow **Local Network** access so it can see your router.
+
+### Android
+
+Download the APK from the **[latest release](https://github.com/dlegion98/wavremote/releases/latest)**.
+After that, the app updates itself (More, App update).
+
+### Away from home
+
+The router only answers inside your home network. Run Tailscale on an always-on computer at home that
+shares your network (`tailscale up --advertise-routes=192.168.20.0/24`, then approve the route in the
+Tailscale admin console), and turn Tailscale on on your phone. WavRemote then works anywhere.
+
+## Android app
 
 A native Kotlin/Jetpack Compose app for Wavlink AX3000 mesh routers, replacing the WavRouter app.
 It talks directly to the router's own JSON API (`/protocol.csp`). The API was mapped from the
@@ -50,4 +82,7 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed in each update.
 | Reboot | `system/reset_reboot` set `action=0` |
 
 ## Build
-Open in Android Studio → Build → Build APK(s). Requires Android 8.0 or later.
+- **Android**: open in Android Studio, then Build, Build APK(s). Requires Android 8.0 or later.
+  GitHub Actions builds and publishes a signed APK on every push.
+- **iOS**: SwiftUI app in [`ios/`](ios). GitHub Actions builds an unsigned IPA on macOS for every change
+  there, and updates `sidestore.json`. Requires iOS 16 or later.
