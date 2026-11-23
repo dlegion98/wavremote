@@ -18,6 +18,15 @@
       "screenshots": [],
       "versions": [
         {
+          "version": "1.0.6",
+          "buildVersion": "6",
+          "date": "2026-11-23T06:54:02Z",
+          "localizedDescription": "Readme: install links for iPhone (SideStore/AltStore source, IPA) and Android",
+          "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.6.ipa",
+          "size": 817111,
+          "minOSVersion": "16.0"
+        },
+        {
           "version": "1.0.5",
           "buildVersion": "5",
           "date": "2026-11-22T23:10:34Z",
@@ -36,11 +45,11 @@
           "minOSVersion": "16.0"
         }
       ],
-      "version": "1.0.5",
-      "versionDate": "2026-11-22T23:10:34Z",
-      "versionDescription": "iOS: serve the IPA from raw.githubusercontent.com",
-      "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.5.ipa",
-      "size": 817112,
+      "version": "1.0.6",
+      "versionDate": "2026-11-23T06:54:02Z",
+      "versionDescription": "Readme: install links for iPhone (SideStore/AltStore source, IPA) and Android",
+      "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.6.ipa",
+      "size": 817111,
       "appPermissions": {
         "entitlements": [],
         "privacy": {
