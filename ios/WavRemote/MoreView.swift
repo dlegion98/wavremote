@@ -50,13 +50,7 @@ struct MoreView: View {
                         .disabled(model.busy)
 
                     SectionLabel("Away from home")
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("The router only answers inside your home network. To use WavRemote when you're out, connect this iPhone to your home network with a VPN, and the app works as it does at home.")
-                        Text("Easiest: run Tailscale on your home server with  tailscale up --advertise-routes=192.168.20.0/24, approve the route in Tailscale's admin page, then install Tailscale on this iPhone and leave it on.")
-                        Text("Don't use port forwarding or the router's remote management: the router's page isn't encrypted.")
-                    }
-                    .font(.pro(14)).foregroundStyle(Pro.muted)
-                    .panel()
+                    TailscaleCard()
 
                     SectionLabel("App")
                     VStack(alignment: .leading, spacing: 8) {

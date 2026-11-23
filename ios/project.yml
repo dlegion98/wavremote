@@ -22,6 +22,18 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         GENERATE_INFOPLIST_FILE: NO
+        SWIFT_OBJC_BRIDGING_HEADER: WavRemote/TSBridge.h
+        OTHER_LDFLAGS:
+          - "$(PROJECT_DIR)/tsbridge-build/libtsbridge.a"
+          - "-lresolv"
+          - "-framework"
+          - "Security"
+          - "-framework"
+          - "CoreFoundation"
+          - "-framework"
+          - "SystemConfiguration"
+          - "-framework"
+          - "Network"
         CODE_SIGNING_ALLOWED: NO
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGN_IDENTITY: ""

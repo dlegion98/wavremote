@@ -12,6 +12,18 @@ struct MainView: View {
             WifiView().tabItem { Label("Wi-Fi", systemImage: "wifi") }.tag(AppTab.wifi)
             MoreView().tabItem { Label("More", systemImage: "slider.horizontal.3") }.tag(AppTab.more)
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if model.away {
+                HStack(spacing: 8) {
+                    Image(systemName: "globe").font(.system(size: 13, weight: .semibold))
+                    Text("Away from home, connected through Tailscale").font(.pro(13, .semibold))
+                }
+                .foregroundStyle(Pro.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background(Pro.accent.opacity(0.12))
+            }
+        }
         .overlay(alignment: .top) {
             if model.busy {
                 ProgressView().progressViewStyle(.linear).tint(Pro.accent)

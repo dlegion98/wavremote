@@ -17,3 +17,5 @@ ios/build/
 ios/Payload/
 ios/*.ipa
 ios/build.log
+ios/tsbridge-build/
+tailscale-bridge/go.log

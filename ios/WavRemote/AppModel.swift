@@ -36,6 +36,9 @@ final class AppModel: ObservableObject {
     @Published var toast: String?
 
     private var api: WavlinkAPI?
+    /// True while connected through built-in Tailscale instead of the home Wi-Fi.
+    @Published private(set) var away = false
+    private var lastReconnect = Date.distantPast
 
     var lastHost: String? { Store.lastHost }
 
@@ -59,7 +62,19 @@ final class AppModel: ObservableObject {
         Store.customHost = customHost
         scanning = true
         Task {
-            scanResults = await RouterScanner.scan(extra: customHost.isEmpty ? Store.lastHost : customHost)
+            var results = await RouterScanner.scan(extra: customHost.isEmpty ? Store.lastHost : customHost)
+            // Away from home: the usual addresses may still answer through built-in Tailscale.
+            let ts = TailscaleManager.shared
+            if !results.contains(where: { $0.state == .wavlink }), await ts.waitUntilRunning(seconds: 6) {
+                for i in results.indices where results[i].state != .wavlink {
+                    if await ts.reaches(results[i].host) {
+                        results[i].state = .wavlink
+                        results[i].detail = "Reachable through Tailscale"
+                    }
+                }
+                results.sort { $0.state.rawValue < $1.state.rawValue }
+            }
+            scanResults = results
             scanning = false
         }
     }
@@ -90,7 +105,11 @@ final class AppModel: ObservableObject {
         loginBusy = true
         loginError = nil
         defer { loginBusy = false }
-        let a = WavlinkAPI(host: host)
+        guard let a = await connect(host) else {
+            loginError = "Can't reach your router. At home, join its Wi-Fi. Away, switch on built-in Tailscale (Away from home)."
+            screen = .login(host)
+            return
+        }
         do {
             try await a.login(hash: hash)
             api = a
@@ -108,6 +127,34 @@ final class AppModel: ObservableObject {
         } catch {
             loginError = Self.friendly(error)
             screen = .login(host)
+        }
+    }
+
+    /// Home Wi-Fi first; otherwise the router through built-in Tailscale.
+    private func connect(_ host: String) async -> WavlinkAPI? {
+        if await RouterScanner.answersDirectly(host) {
+            away = false
+            return WavlinkAPI(host: host)
+        }
+        let ts = TailscaleManager.shared
+        if await ts.waitUntilRunning(seconds: 10), let port = ts.proxyPort(), await ts.reaches(host) {
+            away = true
+            return WavlinkAPI(host: host, proxyPort: port)
+        }
+        return nil
+    }
+
+    /// The phone moved between home Wi-Fi and elsewhere: find the router again and sign back in.
+    private func reconnectQuietly() {
+        guard let h = host, let hash = Store.hash(for: h), Date().timeIntervalSince(lastReconnect) > 30 else { return }
+        lastReconnect = Date()
+        Task {
+            guard let a = await connect(h) else { return }
+            do {
+                try await a.login(hash: hash)
+                api = a
+                await refreshAll()
+            } catch {}
         }
     }
 
@@ -133,7 +180,7 @@ final class AppModel: ObservableObject {
             case NSURLErrorTimedOut: return "The router didn't answer in time."
             case NSURLErrorCannotConnectToHost, NSURLErrorNetworkConnectionLost, NSURLErrorNotConnectedToInternet,
                  NSURLErrorCannotFindHost:
-                return "Can't reach the router. At home, join its Wi-Fi. Away, turn on your VPN."
+                return "Can't reach the router. At home, join its Wi-Fi. Away, switch on built-in Tailscale."
             default: break
             }
         }
@@ -191,6 +238,7 @@ final class AppModel: ObservableObject {
             if let h = host { screen = .login(h) }
             return
         }
+        if e is URLError { reconnectQuietly() }
         if !quiet { toast = Self.friendly(e) }
     }
 

@@ -97,6 +97,9 @@ struct ConnectView: View {
                     .panel()
                 }
 
+                SectionLabel("Away from home?")
+                TailscaleCard()
+
                 SectionLabel("Know the address?")
                 HStack(alignment: .bottom, spacing: 8) {
                     ProField(label: "Router address", text: $model.customHost, keyboard: .URL)
@@ -147,6 +150,9 @@ struct LoginView: View {
 
                 Button("Open the router's web page instead") { showWeb = true }
                     .font(.pro(15, .semibold))
+
+                SectionLabel("Away from home?")
+                TailscaleCard()
             }
             .padding(20)
         }

@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - "ios/**"
+      - "tailscale-bridge/**"
       - ".github/workflows/ios.yml"
   workflow_dispatch:
 
@@ -27,6 +28,31 @@ jobs:
         run: |
           echo "N=${{ github.run_number }}" >> "$GITHUB_ENV"
           echo "VER=1.0.${{ github.run_number }}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tailscale-bridge/go.mod
+          cache: false
+
+      # Tailscale (tsnet) compiled as a static C library for iOS, linked into the app.
+      - name: Build Tailscale bridge
+        working-directory: tailscale-bridge
+        run: |
+          set -o pipefail
+          go mod tidy
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          export GOOS=ios GOARCH=arm64 CGO_ENABLED=1
+          export CC="$(xcrun --sdk iphoneos --find clang)"
+          export CGO_CFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=16.0"
+          export CGO_LDFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=16.0"
+          mkdir -p ../ios/tsbridge-build
+          if ! go build -trimpath -buildmode=c-archive -ldflags="-s -w" \
+               -o ../ios/tsbridge-build/libtsbridge.a ./cmd/iosbridge > go.log 2>&1; then
+            head -n 40 go.log | while IFS= read -r line; do echo "::error::go: $line"; done
+            exit 1
+          fi
+          ls -la ../ios/tsbridge-build
+          echo "::notice::Tailscale bridge: $(stat -f %z ../ios/tsbridge-build/libtsbridge.a) bytes"
 
       - name: Generate Xcode project
         working-directory: ios

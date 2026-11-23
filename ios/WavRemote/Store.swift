@@ -70,6 +70,14 @@ enum RouterScanner {
         return results.sorted { $0.state.rawValue < $1.state.rawValue }
     }
 
+    /// Quick check that something answers at host on this network (not through Tailscale).
+    static func answersDirectly(_ host: String, timeout: Double = 2.5) async -> Bool {
+        guard let url = URL(string: "http://\(host)/") else { return false }
+        var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
+        req.setValue(WavlinkAPI.browserUA, forHTTPHeaderField: "User-Agent")
+        return (try? await URLSession.shared.data(for: req)) != nil
+    }
+
     static func probe(_ host: String) async -> ProbeResult {
         guard let url = URL(string: "http://\(host)/") else {
             return ProbeResult(host: host, state: .unreachable, detail: "Not a valid address")

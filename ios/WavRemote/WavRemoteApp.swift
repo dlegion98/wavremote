@@ -2,9 +2,12 @@ import SwiftUI
 
 @main
 struct WavRemoteApp: App {
-    @StateObject private var model = AppModel()
+    @StateObject private var model: AppModel
 
     init() {
+        // Start Tailscale first so it's connecting while the app looks for the router.
+        TailscaleManager.shared.startIfEnabled()
+        _model = StateObject(wrappedValue: AppModel())
         let nav = UINavigationBarAppearance()
         nav.configureWithOpaqueBackground()
         nav.backgroundColor = UIColor(Pro.bg)

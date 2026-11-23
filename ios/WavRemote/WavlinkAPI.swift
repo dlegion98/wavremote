@@ -16,16 +16,27 @@ final class WavlinkAPI: @unchecked Sendable {
     private(set) var token: String?
     private(set) var loginHash: String?
 
-    private let session: URLSession = {
+    private let session: URLSession
+    /// True when requests go through the built-in Tailscale proxy.
+    let viaTailscale: Bool
+
+    init(host: String, proxyPort: Int? = nil) {
+        self.host = host
         let c = URLSessionConfiguration.ephemeral
-        c.timeoutIntervalForRequest = 15
-        c.timeoutIntervalForResource = 30
+        c.timeoutIntervalForRequest = proxyPort == nil ? 15 : 25
+        c.timeoutIntervalForResource = proxyPort == nil ? 30 : 50
         c.requestCachePolicy = .reloadIgnoringLocalCacheData
         c.httpShouldSetCookies = false
-        return URLSession(configuration: c)
-    }()
-
-    init(host: String) { self.host = host }
+        if let port = proxyPort {
+            c.connectionProxyDictionary = [
+                "HTTPEnable": 1,
+                "HTTPProxy": "127.0.0.1",
+                "HTTPPort": port,
+            ]
+        }
+        viaTailscale = proxyPort != nil
+        session = URLSession(configuration: c)
+    }
 
     private var endpoint: String { "http://\(host)/protocol.csp" }
 
