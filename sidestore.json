@@ -18,6 +18,15 @@
       "screenshots": [],
       "versions": [
         {
+          "version": "1.0.10",
+          "buildVersion": "10",
+          "date": "2026-11-23T12:37:12Z",
+          "localizedDescription": "Android: crash reports, and switch off built-in Tailscale if it crashes the app",
+          "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.10.ipa",
+          "size": 8652454,
+          "minOSVersion": "16.0"
+        },
+        {
           "version": "1.0.9",
           "buildVersion": "9",
           "date": "2026-11-23T09:05:45Z",
@@ -54,11 +63,11 @@
           "minOSVersion": "16.0"
         }
       ],
-      "version": "1.0.9",
-      "versionDate": "2026-11-23T09:05:45Z",
-      "versionDescription": "iOS build: make the SideStore source update reliable",
-      "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.9.ipa",
-      "size": 8651361,
+      "version": "1.0.10",
+      "versionDate": "2026-11-23T12:37:12Z",
+      "versionDescription": "Android: crash reports, and switch off built-in Tailscale if it crashes the app",
+      "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.10.ipa",
+      "size": 8652454,
       "appPermissions": {
         "entitlements": [],
         "privacy": {
