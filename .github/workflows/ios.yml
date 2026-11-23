@@ -142,7 +142,13 @@ jobs:
           git config user.email "41898+github-actions[bot]@users.noreply.github.com"
           git add sidestore.json
           git commit -m "SideStore source: WavRemote $VER [skip ci]"
+          # The build leaves other files changed (go.sum and so on); stash them so the rebase works.
           for i in 1 2 3; do
-            git pull --rebase origin main && git push origin HEAD:main && break
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then
+              echo "Source updated."
+              exit 0
+            fi
             sleep 5
           done
+          echo "::error::Couldn't push the updated sidestore.json"
+          exit 1
