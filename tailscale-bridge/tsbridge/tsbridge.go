@@ -14,6 +14,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -59,6 +61,11 @@ func Start(dir, hostname string) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		lastErr = err.Error()
 		return err
+	}
+	// If Go itself crashes, write the details where the app can find them next launch.
+	if f, err := os.OpenFile(filepath.Join(dir, "crash.txt"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600); err == nil {
+		debug.SetCrashOutput(f, debug.CrashOptions{})
+		f.Close()
 	}
 	s := &tsnet.Server{
 		Dir:      dir,

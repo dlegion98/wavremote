@@ -46,6 +46,15 @@ object TailscaleBridge {
     @Synchronized
     private fun start(ctx: Context) {
         if (started) return
+        // If built-in Tailscale took the whole app down last time, switch it off and keep the details.
+        if (CrashReporter.tailscaleCrashedLastTime(ctx)) {
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_ENABLED, false).apply()
+            startError = "It closed the app last time, so it was switched off. The crash details were saved."
+            return
+        }
+        CrashReporter.tailscaleStarting(ctx)
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
+            { CrashReporter.tailscaleSurvived(ctx) }, CrashReporter.GRACE_MS)
         try {
             if (!interfacesSet) {
                 // Android 11+ won't let Go list interfaces itself, so hand them over from Java.
@@ -60,6 +69,7 @@ object TailscaleBridge {
             startError = null
         } catch (e: Throwable) {
             startError = e.message ?: e.toString()
+            CrashReporter.tailscaleSurvived(ctx)
         }
     }
 
