@@ -8,8 +8,15 @@ import SwiftUI
 final class TailscaleManager: ObservableObject {
     static let shared = TailscaleManager()
 
+    struct SharedRoute: Decodable, Equatable {
+        var device: String
+        var online: Bool
+        var route: String
+    }
+
     struct Status: Decodable, Equatable {
         var state: String
+        var routes: [SharedRoute]?
         var authURL: String?
         var ip: String?
         var name: String?
@@ -128,6 +135,35 @@ final class TailscaleManager: ObservableObject {
         return await Task.detached { TSProbe(host, 5000) == 1 }.value
     }
 
+    /// The shared home network that covers [host], if any device on the tailnet shares one.
+    func route(covering host: String) -> SharedRoute? {
+        (status.routes ?? []).first { Self.contains($0.route, host) }
+    }
+
+    /// Why the router can't be reached through Tailscale, in plain words (nil when it should work).
+    func routeProblem(for host: String) -> String? {
+        guard running else { return nil }
+        guard let r = route(covering: host) else {
+            return "No device on your tailnet shares your home network yet. On your home server run " +
+                "tailscale up --advertise-routes=192.168.20.0/24, then approve the route in the Tailscale admin console."
+        }
+        if !r.online { return "\(r.device) shares your home network, but it's offline right now." }
+        return nil
+    }
+
+    static func contains(_ cidr: String, _ host: String) -> Bool {
+        let parts = cidr.split(separator: "/")
+        guard parts.count == 2, let bits = Int(parts[1]), let net = ipv4(String(parts[0])), let ip = ipv4(host) else { return false }
+        let mask: UInt32 = bits == 0 ? 0 : ~UInt32(0) << UInt32(32 - bits)
+        return net & mask == ip & mask
+    }
+
+    private static func ipv4(_ s: String) -> UInt32? {
+        let p = s.split(separator: ".").compactMap { UInt32($0) }
+        guard p.count == 4, p.allSatisfy({ $0 < 256 }) else { return nil }
+        return p[0] << 24 | p[1] << 16 | p[2] << 8 | p[3]
+    }
+
     var stateText: String {
         switch status.state {
         case "Running":
@@ -188,6 +224,12 @@ struct TailscaleCard: View {
                     .disabled(ts.busy)
                 }
                 if ts.running {
+                    let host = Store.lastHost ?? "192.168.20.1"
+                    if let problem = ts.routeProblem(for: host) {
+                        Text(problem).font(.pro(13)).foregroundStyle(Pro.amber)
+                    } else if let r = ts.route(covering: host) {
+                        Text("Home network shared by \(r.device) (\(r.route)).").font(.pro(13)).foregroundStyle(Pro.green)
+                    }
                     Button("Sign out of Tailscale") { ts.logout() }
                         .buttonStyle(SecondaryButtonStyle())
                         .disabled(ts.busy)

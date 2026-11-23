@@ -14,8 +14,11 @@ import java.net.Proxy
  * to the home subnet router.
  */
 object TailscaleBridge {
+    data class SharedRoute(val device: String, val online: Boolean, val route: String)
+
     data class Status(
         val state: String = "Stopped",
+        val routes: List<SharedRoute> = emptyList(),
         val authUrl: String? = null,
         val ip: String? = null,
         val tailnet: String? = null,
@@ -84,8 +87,16 @@ object TailscaleBridge {
         if (!started) return Status(error = startError)
         return try {
             val o = JSONObject(tsbridge.Tsbridge.statusJSON())
+            val routes = mutableListOf<SharedRoute>()
+            o.optJSONArray("routes")?.let { arr ->
+                for (i in 0 until arr.length()) {
+                    val r = arr.getJSONObject(i)
+                    routes += SharedRoute(r.optString("device"), r.optBoolean("online"), r.optString("route"))
+                }
+            }
             Status(
                 state = o.optString("state", "Stopped"),
+                routes = routes,
                 authUrl = o.optString("authURL").ifEmpty { null },
                 ip = o.optString("ip").ifEmpty { null },
                 tailnet = o.optString("tailnet").ifEmpty { null },
@@ -131,6 +142,34 @@ object TailscaleBridge {
         if (port > 0) Proxy(Proxy.Type.HTTP, InetSocketAddress("127.0.0.1", port)) else null
     } catch (e: Throwable) {
         null
+    }
+
+    fun routeCovering(s: Status, host: String): SharedRoute? = s.routes.firstOrNull { contains(it.route, host) }
+
+    /** Why the router can't be reached through Tailscale, in plain words (null when it should work). */
+    fun routeProblem(s: Status, host: String): String? {
+        if (!s.running) return null
+        val r = routeCovering(s, host)
+            ?: return "No device on your tailnet shares your home network yet. On your home server run " +
+                "tailscale up --advertise-routes=192.168.20.0/24, then approve the route in the Tailscale admin console."
+        if (!r.online) return "${r.device} shares your home network, but it's offline right now."
+        return null
+    }
+
+    private fun contains(cidr: String, host: String): Boolean {
+        val parts = cidr.split("/")
+        if (parts.size != 2) return false
+        val bits = parts[1].toIntOrNull() ?: return false
+        val net = ipv4(parts[0]) ?: return false
+        val ip = ipv4(host) ?: return false
+        val mask = if (bits == 0) 0L else (0xFFFFFFFFL shl (32 - bits)) and 0xFFFFFFFFL
+        return (net and mask) == (ip and mask)
+    }
+
+    private fun ipv4(s: String): Long? {
+        val p = s.split(".").map { it.toLongOrNull() ?: return null }
+        if (p.size != 4 || p.any { it !in 0..255 }) return null
+        return (p[0] shl 24) or (p[1] shl 16) or (p[2] shl 8) or p[3]
     }
 
     fun stateText(s: Status, enabled: Boolean): String = when (s.state) {

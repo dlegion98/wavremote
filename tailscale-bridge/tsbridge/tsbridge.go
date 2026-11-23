@@ -107,13 +107,21 @@ func Stop() {
 	}
 }
 
+// sharedRoute is a home network another device on the tailnet shares (a subnet route).
+type sharedRoute struct {
+	Device string `json:"device"`
+	Online bool   `json:"online"`
+	Route  string `json:"route"`
+}
+
 type status struct {
-	State   string `json:"state"`
-	AuthURL string `json:"authURL,omitempty"`
-	IP      string `json:"ip,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Tailnet string `json:"tailnet,omitempty"`
-	Error   string `json:"error,omitempty"`
+	State   string        `json:"state"`
+	Routes  []sharedRoute `json:"routes"`
+	AuthURL string        `json:"authURL,omitempty"`
+	IP      string        `json:"ip,omitempty"`
+	Name    string        `json:"name,omitempty"`
+	Tailnet string        `json:"tailnet,omitempty"`
+	Error   string        `json:"error,omitempty"`
 }
 
 // StatusJSON reports {state, authURL, ip, name, tailnet, error}.
@@ -128,7 +136,7 @@ func StatusJSON() string {
 		out.State = "Starting"
 		if lc, err := s.LocalClient(); err == nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-			st, err := lc.StatusWithoutPeers(ctx)
+			st, err := lc.Status(ctx)
 			cancel()
 			if err == nil {
 				out.State = st.BackendState
@@ -141,6 +149,17 @@ func StatusJSON() string {
 				}
 				if st.CurrentTailnet != nil {
 					out.Tailnet = st.CurrentTailnet.Name
+				}
+				for _, p := range st.Peer {
+					if p.PrimaryRoutes == nil {
+						continue
+					}
+					for _, r := range p.PrimaryRoutes.All() {
+						if r.Bits() == 0 {
+							continue // exit node, not a home network
+						}
+						out.Routes = append(out.Routes, sharedRoute{Device: p.HostName, Online: p.Online, Route: r.String()})
+					}
 				}
 			}
 		}

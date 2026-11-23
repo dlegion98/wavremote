@@ -97,6 +97,16 @@ fun TailscaleCard(modifier: Modifier = Modifier) {
                     ) { Text(if (status.authUrl == null) "Getting sign-in link…" else "Sign in to Tailscale") }
                 }
                 if (status.running) {
+                    val host = ctx.getSharedPreferences("wavremote", android.content.Context.MODE_PRIVATE)
+                        .getString("lastHost", null) ?: "192.168.20.1"
+                    val problem = TailscaleBridge.routeProblem(status, host)
+                    val shared = TailscaleBridge.routeCovering(status, host)
+                    if (problem != null) {
+                        Text(problem, style = MaterialTheme.typography.bodySmall, color = wav.activity)
+                    } else if (shared != null) {
+                        Text("Home network shared by ${shared.device} (${shared.route}).",
+                            style = MaterialTheme.typography.bodySmall, color = wav.signal)
+                    }
                     OutlinedButton(
                         onClick = {
                             busy = true

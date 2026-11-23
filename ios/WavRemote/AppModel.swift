@@ -106,7 +106,16 @@ final class AppModel: ObservableObject {
         loginError = nil
         defer { loginBusy = false }
         guard let a = await connect(host) else {
-            loginError = "Can't reach your router. At home, join its Wi-Fi. Away, switch on built-in Tailscale (Away from home)."
+            let ts = TailscaleManager.shared
+            if let problem = ts.routeProblem(for: host) {
+                loginError = problem
+            } else if ts.running {
+                loginError = "Tailscale is connected and your home network is shared, but the router at \(host) didn't answer. Check the address, and that your home server can reach it."
+            } else if ts.status.state == "NeedsLogin" {
+                loginError = "Sign in to built-in Tailscale below to reach your router from here."
+            } else {
+                loginError = "Can't reach your router. At home, join its Wi-Fi. Away, switch on built-in Tailscale below."
+            }
             screen = .login(host)
             return
         }
