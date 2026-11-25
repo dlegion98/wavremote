@@ -260,6 +260,9 @@ class WavlinkApi(val host: String, private val network: Network?, private val pr
     }
 
     /** action=0 is reboot. (Other values reset the router — never sent by this app.) */
+    /** Another device on the same network (a mesh point), reached the same way as this one. */
+    fun sibling(otherHost: String) = WavlinkApi(otherHost, network, proxy)
+
     fun reboot() {
         try {
             call("fname=system&opt=reset_reboot&function=set&action=0")

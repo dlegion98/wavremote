@@ -637,6 +637,101 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ================================================================ health and restarts
+
+    /** Results of the router's own network check (sys/netdiagnostics), once run. */
+    var diag by mutableStateOf<org.json.JSONObject?>(null); private set
+    var diagRunning by mutableStateOf(false); private set
+
+    /** Everything that looks wrong right now, most serious first. */
+    val issues: List<Issue>
+        get() = Health.issues(getApplication(), overview, devices, meshNodes, wifiConfig, api?.loginHash, diag)
+
+    /** Runs the router's network check (about 20 seconds) so problems can be pinned down. */
+    fun runHealthCheck() {
+        val a = api ?: return
+        if (diagRunning) return
+        diagRunning = true
+        viewModelScope.launch {
+            try {
+                val d = withContext(Dispatchers.IO) {
+                    a.set("sys", "netdiagnostics")
+                    Thread.sleep(18_000)
+                    a.get("sys", "netdiagnostics")
+                }
+                diag = d
+                refreshOverview(quiet = true)
+                refreshMesh(quiet = true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                handleError(e, quiet = false)
+            } finally {
+                diagRunning = false
+            }
+        }
+    }
+
+    fun applyFix(fix: Fix) {
+        when (fix) {
+            is Fix.Open -> openSettings(fix.page)
+            is Fix.RestartNode -> restartNode(fix.node)
+            Fix.RestartRouter -> reboot()
+            Fix.RunCheck -> runHealthCheck()
+            Fix.ShowDevices -> tab = Tab.DEVICES
+        }
+    }
+
+    /** Restarts one mesh point by signing in to it directly (mesh points share the admin password). */
+    fun restartNode(n: MeshNode) {
+        val ip = n.ip
+        if (ip == null) {
+            message = "${n.name} doesn't report an address, so it can't be restarted from here. Unplug it for 10 seconds instead."
+            return
+        }
+        val hash = api?.loginHash ?: return
+        action("Restarting ${n.name}. It'll be back in about 2 minutes.", then = { refreshMeshLater() }) { a ->
+            val node = a.sibling(ip)
+            try {
+                node.login(hash)
+            } catch (e: Exception) {
+                throw RouterException(-1, "${n.name} didn't accept the restart. Unplug it for 10 seconds instead.")
+            }
+            node.reboot()
+        }
+    }
+
+    /** Restarts every mesh point, then the main router last. */
+    fun restartEverything() {
+        val hash = api?.loginHash ?: return
+        val nodes = meshNodes.orEmpty()
+        val failed = mutableListOf<String>()
+        action(null, then = {
+            message = if (failed.isEmpty()) "Restarting every mesh point and the router. Everything will be back in about 3 minutes."
+            else "Restarting the router. ${failed.joinToString(" and ")} didn't accept the restart, so unplug ${if (failed.size == 1) "it" else "them"} for 10 seconds."
+        }) { a ->
+            for (n in nodes) {
+                val ip = n.ip
+                if (ip == null) { failed += n.name; continue }
+                try {
+                    val node = a.sibling(ip)
+                    node.login(hash)
+                    node.reboot()
+                } catch (e: Exception) {
+                    failed += n.name
+                }
+            }
+            a.reboot()
+        }
+    }
+
+    private fun refreshMeshLater() {
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(150_000)
+            refreshMesh(quiet = true)
+        }
+    }
+
     fun openWebSettings() { screen = Screen.WebSettings }
     fun closeWebSettings() { screen = if (api != null) Screen.Main else Screen.Connect }
 

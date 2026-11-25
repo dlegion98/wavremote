@@ -36,6 +36,14 @@ final class AppModel: ObservableObject {
     @Published var toast: String?
 
     private var api: WavlinkAPI?
+    @Published private(set) var diag: [String: Any]?
+    @Published private(set) var diagRunning = false
+    var apiHost: String? { api?.host }
+
+    /// Everything that looks wrong right now, most serious first.
+    var issues: [Issue] {
+        Health.issues(overview: overview, devices: devices, mesh: mesh, wifi: wifi, loginHash: api?.loginHash, diag: diag)
+    }
     /// True while connected through built-in Tailscale instead of the home Wi-Fi.
     @Published private(set) var away = false
     private var lastReconnect = Date.distantPast
@@ -271,6 +279,56 @@ final class AppModel: ObservableObject {
             try? await Task.sleep(nanoseconds: UInt64(reloadAfter * 1_000_000_000))
             busy = false
             await refreshAll()
+        }
+    }
+
+    /// Runs the router's network check (about 20 seconds) so problems can be pinned down.
+    func runHealthCheck() {
+        guard let api, !diagRunning else { return }
+        diagRunning = true
+        Task {
+            do {
+                try await api.startDiagnostics()
+                try? await Task.sleep(nanoseconds: 18_000_000_000)
+                diag = try await api.get("sys", "netdiagnostics")
+                await refreshOverview(quiet: true)
+                await refreshMesh(quiet: true)
+            } catch {
+                toast = Self.friendly(error)
+            }
+            diagRunning = false
+        }
+    }
+
+    /// Restarts one mesh point by signing in to it directly (mesh points share the admin password).
+    func restartNode(name: String, ip: String) {
+        guard let hash = api?.loginHash else { return }
+        run("Restarting \(name). It'll be back in about 2 minutes.") { a in
+            let node = a.sibling(ip)
+            do { try await node.login(hash: hash) } catch {
+                throw RouterError(code: -1, message: "\(name) didn't accept the restart. Unplug it for 10 seconds instead.")
+            }
+            await node.reboot()
+        }
+    }
+
+    /// Restarts every mesh point, then the main router last.
+    func restartEverything() {
+        guard let hash = api?.loginHash else { return }
+        let nodes = mesh ?? []
+        run("Restarting every mesh point and the router. Everything will be back in about 3 minutes.", reloadAfter: 120) { a in
+            var failed: [String] = []
+            for n in nodes {
+                guard let ip = n.ip else { failed.append(n.name); continue }
+                let node = a.sibling(ip)
+                do { try await node.login(hash: hash); await node.reboot() } catch { failed.append(n.name) }
+            }
+            await a.reboot()
+            if !failed.isEmpty {
+                await MainActor.run {
+                    self.toast = "Restarting the router. \(failed.joined(separator: " and ")) didn't accept the restart, so unplug it for 10 seconds."
+                }
+            }
         }
     }
 

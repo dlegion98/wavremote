@@ -3,6 +3,7 @@ import Foundation
 struct Overview {
     var model: String?
     var internetUp: Bool
+    var wanLink: Bool = true
     var wanIp: String?
     var wanType: String
     var ssid2: String?
@@ -50,6 +51,7 @@ struct MeshNode: Identifiable {
     var name: String
     var ip: String?
     var rssi: Int?
+    var mac: String? = nil
     var id: String { (ip ?? "") + name }
 
     var linkLabel: String {

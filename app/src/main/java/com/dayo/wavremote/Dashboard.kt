@@ -340,6 +340,9 @@ fun DashboardHome(vm: AppViewModel) {
             )
         }
 
+        // ---- what's wrong, if anything
+        item { HealthCard(vm) }
+
         // ---- network map
         item {
             Group {

@@ -227,6 +227,8 @@ private fun NodeTile(name: String, sub: String, status: String, color: androidx.
 private fun MoreTab(vm: AppViewModel) {
     var confirmReboot by remember { mutableStateOf(false) }
     var confirmLogout by remember { mutableStateOf(false) }
+    var confirmAll by remember { mutableStateOf(false) }
+    var restartNode by remember { mutableStateOf<MeshNode?>(null) }
     LaunchedEffect(Unit) { if (vm.meshNodes == null) vm.refreshMesh(quiet = true) }
     val wav = Wav.colors
 
@@ -237,15 +239,15 @@ private fun MoreTab(vm: AppViewModel) {
         item { TabHeader("More", onRefresh = { vm.refreshMesh() }) }
 
         item {
-            GroupLabel("Mesh points")
+            GroupLabel("Mesh points (tap one to restart it)")
             Row(
                 Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                NodeTile("Main router", vm.host ?: "", "Online", wav.signal) { vm.openSettings(SettingsPage.MESH) }
+                NodeTile("Main router", vm.host ?: "", "Online", wav.signal) { confirmReboot = true }
                 vm.meshNodes?.forEach { n ->
                     NodeTile(n.name, n.ip ?: "", meshLinkLabel(n.rssi),
-                        if ((n.rssi ?: -60) < -73) wav.activity else wav.signal) { vm.openSettings(SettingsPage.MESH) }
+                        if ((n.rssi ?: -60) < -73) wav.activity else wav.signal) { restartNode = n }
                 }
                 if (vm.meshNodes?.isEmpty() == true) NodeTile("No satellites", "Add one in web settings", "Not paired",
                     MaterialTheme.colorScheme.outline) { vm.openWebSettings() }
@@ -271,6 +273,9 @@ private fun MoreTab(vm: AppViewModel) {
                 GroupRow("Restart router", "Everyone is offline for about 2 minutes",
                     icon = Icons.Rounded.RestartAlt, iconTint = wav.activity, onClick = { confirmReboot = true })
                 GroupDivider()
+                GroupRow("Restart everything", "Every mesh point, then the router. About 3 minutes",
+                    icon = Icons.Rounded.RestartAlt, iconTint = wav.fault, onClick = { confirmAll = true })
+                GroupDivider()
                 GroupRow("Web settings", "The router's own pages",
                     icon = Icons.Rounded.OpenInBrowser, iconTint = MaterialTheme.colorScheme.secondary,
                     onClick = vm::openWebSettings)
@@ -292,6 +297,24 @@ private fun MoreTab(vm: AppViewModel) {
             text = { Text("All devices lose internet for about 2 minutes while it restarts.") },
             confirmButton = { TextButton(onClick = { confirmReboot = false; vm.reboot() }) { Text("Restart") } },
             dismissButton = { TextButton(onClick = { confirmReboot = false }) { Text("Cancel") } },
+        )
+    }
+    restartNode?.let { n ->
+        AlertDialog(
+            onDismissRequest = { restartNode = null },
+            title = { Text("Restart ${n.name}?") },
+            text = { Text("Devices near it lose Wi-Fi for about 2 minutes while it restarts. Everything else keeps working.") },
+            confirmButton = { TextButton(onClick = { restartNode = null; vm.restartNode(n) }) { Text("Restart") } },
+            dismissButton = { TextButton(onClick = { restartNode = null }) { Text("Cancel") } },
+        )
+    }
+    if (confirmAll) {
+        AlertDialog(
+            onDismissRequest = { confirmAll = false },
+            title = { Text("Restart everything?") },
+            text = { Text("Every mesh point and the main router restart. All devices lose internet for about 3 minutes.") },
+            confirmButton = { TextButton(onClick = { confirmAll = false; vm.restartEverything() }) { Text("Restart all") } },
+            dismissButton = { TextButton(onClick = { confirmAll = false }) { Text("Cancel") } },
         )
     }
     if (confirmLogout) {

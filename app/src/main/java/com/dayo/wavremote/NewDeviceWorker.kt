@@ -35,14 +35,27 @@ class NewDeviceWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(
         // Home Wi-Fi or a VPN to home; neither means there's nothing to check right now.
         val route = RouterLink.resolve(ctx, host) ?: return Result.success()
 
+        val api = WavlinkApi(route.host, route.network, route.proxy)
         val list = try {
             withContext(Dispatchers.IO) {
-                val api = WavlinkApi(route.host, route.network, route.proxy)
                 api.login(hash)
                 api.devices()
             }
         } catch (e: Exception) {
             return Result.success()   // router unreachable or busy: try next time
+        }
+
+        // Network problems (internet down, a mesh point offline…): tell once per problem.
+        try {
+            val problems = withContext(Dispatchers.IO) {
+                val o = runCatching { api.overview() }.getOrNull()
+                val mesh = runCatching { api.meshNodes() }.getOrNull()
+                Health.issues(ctx, o, list, mesh, null, null, null).filter { it.severity == Severity.PROBLEM }
+            }
+            val told = prefs.getStringSet(KEY_TOLD, emptySet()) ?: emptySet()
+            problems.filter { it.id !in told }.take(3).forEach { notifyIssue(ctx, it) }
+            prefs.edit().putStringSet(KEY_TOLD, problems.map { it.id }.toSet()).apply()
+        } catch (_: Exception) {
         }
 
         val known = prefs.getStringSet(KEY_KNOWN, emptySet()) ?: emptySet()
@@ -57,7 +70,9 @@ class NewDeviceWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(
         const val PREFS = "wavremote"
         const val KEY_ENABLED = "alerts"
         const val KEY_KNOWN = "knownMacs"
+        private const val KEY_TOLD = "toldIssues"
         private const val CHANNEL = "new_devices"
+        private const val CHANNEL_ISSUES = "network_problems"
         private const val WORK = "new-device-check"
 
         fun enable(ctx: Context, currentDevices: DeviceList?) {
@@ -90,10 +105,36 @@ class NewDeviceWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(
                     description = "When a device joins your network for the first time"
                 },
             )
+            nm.createNotificationChannel(
+                NotificationChannel(CHANNEL_ISSUES, "Network problems", NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = "When the internet goes down or a mesh point goes offline"
+                },
+            )
         }
 
         fun canNotify(ctx: Context) = Build.VERSION.SDK_INT < 33 ||
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+        private fun notifyIssue(ctx: Context, issue: Issue) {
+            if (!canNotify(ctx)) return
+            ensureChannel(ctx)
+            val open = PendingIntent.getActivity(
+                ctx, 1, Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_IMMUTABLE,
+            )
+            val n = NotificationCompat.Builder(ctx, CHANNEL_ISSUES)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(issue.title)
+                .setContentText(issue.detail)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(issue.detail))
+                .setContentIntent(open)
+                .setAutoCancel(true)
+                .build()
+            try {
+                NotificationManagerCompat.from(ctx).notify(issue.id.hashCode(), n)
+            } catch (_: SecurityException) {
+            }
+        }
 
         private fun notify(ctx: Context, d: Device) {
             if (!canNotify(ctx)) return

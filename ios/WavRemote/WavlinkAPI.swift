@@ -20,8 +20,14 @@ final class WavlinkAPI: @unchecked Sendable {
     /// True when requests go through the built-in Tailscale proxy.
     let viaTailscale: Bool
 
+    private let proxyPort: Int?
+
+    /// Another device on the same network (a mesh point), reached the same way as this one.
+    func sibling(_ otherHost: String) -> WavlinkAPI { WavlinkAPI(host: otherHost, proxyPort: proxyPort) }
+
     init(host: String, proxyPort: Int? = nil) {
         self.host = host
+        self.proxyPort = proxyPort
         let c = URLSessionConfiguration.ephemeral
         c.timeoutIntervalForRequest = proxyPort == nil ? 15 : 25
         c.timeoutIntervalForResource = proxyPort == nil ? 30 : 50
@@ -134,6 +140,7 @@ final class WavlinkAPI: @unchecked Sendable {
         return Overview(
             model: g?.nonEmpty("Model") ?? base?.nonEmpty("Model"),
             internetUp: wan.truthy("connected"),
+            wanLink: wan["link"] == nil ? true : wan.truthy("link"),
             wanIp: wan.nonEmpty("ip"),
             wanType: wanModes[wan["mode"] == nil ? 1 : wan.int("mode")] ?? "DHCP",
             ssid2: w2?.nonEmpty("SSID2g"),
@@ -187,7 +194,8 @@ final class WavlinkAPI: @unchecked Sendable {
         return list.enumerated().map { i, o in
             MeshNode(name: o.nonEmpty("name") ?? o.nonEmpty("dev_name") ?? "Node \(i + 1)",
                      ip: o.nonEmpty("ip_addr") ?? o.nonEmpty("ip"),
-                     rssi: o["rssi"] == nil ? nil : o.int("rssi"))
+                     rssi: o["rssi"] == nil ? nil : o.int("rssi"),
+                     mac: o.nonEmpty("mac") ?? o.nonEmpty("pairKey") ?? o.nonEmpty("pair_key"))
         }
     }
 
@@ -211,6 +219,11 @@ final class WavlinkAPI: @unchecked Sendable {
 
     func reboot() async {
         _ = try? await call("fname=system&opt=reset_reboot&function=set&action=0")
+    }
+
+    /// Starts the router's own network check; read the results with get("sys", "netdiagnostics") ~18 s later.
+    func startDiagnostics() async throws {
+        try await call("fname=sys&opt=netdiagnostics&function=set")
     }
 
     /// 2.4 GHz first without restart, then 5 GHz three seconds later with restart (as the web page does).

@@ -121,6 +121,8 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     header
+                    SectionLabel("Network health")
+                    HealthPanel()
                     if let list = model.devices, let score = experienceScore(list) {
                         HStack(spacing: 16) {
                             RingGauge(score: score, color: score >= 60 ? Pro.green : score >= 40 ? Pro.amber : Pro.red)

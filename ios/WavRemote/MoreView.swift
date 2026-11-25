@@ -17,6 +17,8 @@ struct MoreView: View {
     @State private var confirmRestart = false
     @State private var confirmSignOut = false
     @State private var showWeb = false
+    @State private var restartTarget: MeshNode?
+    @State private var confirmAll = false
 
     var body: some View {
         NavigationStack {
@@ -24,12 +26,17 @@ struct MoreView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     SectionLabel("Mesh points")
                     VStack(spacing: 12) {
-                        node("Main router", model.host ?? "", "Online", Pro.green)
+                        node("Main router", model.host ?? "", "Online", Pro.green) { confirmRestart = true }
                         ForEach(model.mesh ?? []) { n in
-                            node(n.name, n.ip ?? "", n.linkLabel, n.linkLabel == "Weak link" ? Pro.amber : Pro.green)
+                            node(n.name, n.ip ?? "", n.linkLabel, n.linkLabel == "Weak link" ? Pro.amber : Pro.green) {
+                                restartTarget = n
+                            }
                         }
                     }
                     .panel()
+                    Button { confirmAll = true } label: { Label("Restart everything", systemImage: "arrow.triangle.2.circlepath") }
+                        .buttonStyle(SecondaryButtonStyle())
+                        .disabled(model.busy)
 
                     SectionLabel("Router")
                     VStack(alignment: .leading, spacing: 8) {
@@ -74,6 +81,17 @@ struct MoreView: View {
             .confirmationDialog("Restart the router?", isPresented: $confirmRestart, titleVisibility: .visible) {
                 Button("Restart", role: .destructive) { model.reboot() }
             } message: { Text("Everything loses internet for about two minutes.") }
+            .confirmationDialog("Restart \(restartTarget?.name ?? "")?",
+                                isPresented: Binding(get: { restartTarget != nil }, set: { if !$0 { restartTarget = nil } }),
+                                titleVisibility: .visible) {
+                Button("Restart", role: .destructive) {
+                    if let n = restartTarget, let ip = n.ip { model.restartNode(name: n.name, ip: ip) }
+                    restartTarget = nil
+                }
+            } message: { Text("Devices near it lose Wi-Fi for about 2 minutes. Everything else keeps working.") }
+            .confirmationDialog("Restart everything?", isPresented: $confirmAll, titleVisibility: .visible) {
+                Button("Restart all", role: .destructive) { model.restartEverything() }
+            } message: { Text("Every mesh point and the main router restart. All devices lose internet for about 3 minutes.") }
             .confirmationDialog("Sign out?", isPresented: $confirmSignOut, titleVisibility: .visible) {
                 Button("Sign out") { model.signOut(forget: false) }
                 Button("Sign out and forget the password", role: .destructive) { model.signOut(forget: true) }
@@ -81,7 +99,8 @@ struct MoreView: View {
         }
     }
 
-    private func node(_ name: String, _ ip: String, _ status: String, _ color: Color) -> some View {
+    private func node(_ name: String, _ ip: String, _ status: String, _ color: Color,
+                      restart: @escaping () -> Void) -> some View {
         HStack(spacing: 12) {
             IconBadge(symbol: "wifi.router", tint: color)
             VStack(alignment: .leading, spacing: 2) {
@@ -90,6 +109,14 @@ struct MoreView: View {
             }
             Spacer()
             TagView(text: status, color: color)
+            Button(action: restart) {
+                Image(systemName: "arrow.clockwise").font(.system(size: 15, weight: .semibold))
+                    .frame(width: 34, height: 34)
+                    .background(Pro.panelHigh)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .accessibilityLabel("Restart \(name)")
+            .disabled(model.busy)
         }
     }
 

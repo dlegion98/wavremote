@@ -1,5 +1,12 @@
 # Changelog
 
+## 25 November 2026
+
+New
+- Network health on the Overview: tells you what's wrong in plain words (internet down and why, a mesh point offline or with a weak link, DNS failing, router overloaded, default password, Wi-Fi with no password, devices with weak signal) with a button to fix it. "Run a full check" tests the cable, your provider, DNS, Wi-Fi and router load.
+- Restart any mesh point on its own, or restart everything at once (More).
+- Android: notifications when the internet goes down or a mesh point goes offline (with alerts switched on).
+
 ## 23 November 2026
 
 New
