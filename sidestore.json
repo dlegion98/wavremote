@@ -18,6 +18,15 @@
       "screenshots": [],
       "versions": [
         {
+          "version": "1.0.14",
+          "buildVersion": "14",
+          "date": "2026-11-25T23:29:33Z",
+          "localizedDescription": "Network health with plain-language problems, and per-mesh-point restarts",
+          "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.14.ipa",
+          "size": 8718405,
+          "minOSVersion": "16.0"
+        },
+        {
           "version": "1.0.13",
           "buildVersion": "13",
           "date": "2026-11-23T14:49:23Z",
@@ -81,11 +90,11 @@
           "minOSVersion": "16.0"
         }
       ],
-      "version": "1.0.13",
-      "versionDate": "2026-11-23T14:49:23Z",
-      "versionDescription": "iOS: put the away banner below the navigation bar",
-      "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.13.ipa",
-      "size": 8665475,
+      "version": "1.0.14",
+      "versionDate": "2026-11-25T23:29:33Z",
+      "versionDescription": "Network health with plain-language problems, and per-mesh-point restarts",
+      "downloadURL": "https://raw.githubusercontent.com/dlegion98/wavremote/ios-builds/WavRemote-1.0.14.ipa",
+      "size": 8718405,
       "appPermissions": {
         "entitlements": [],
         "privacy": {
